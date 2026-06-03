@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moon Essence - Plataforma de Moda Independiente</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="logo">Moon<span>Essence</span></div>
+        <nav>
+            <a href="#" class="active">Mostrador</a>
+            <a href="#panel-emprendedor">Mi Emprendimiento</a>
+            <a href="#carrito-checkout">Carrito (2)</a>
+        </nav>
+    </header>
+
+    <div class="container">
+
+        <div class="seccion-titulo">
+            <h2>Mostrador Comunitario</h2>
+            <p>Descubre prendas exclusivas de diseñadores locales supervisadas para tu seguridad.</p>
+        </div>
+
+        <div class="mostrador-grid">
+            <div class="producto-card">
+                <span class="badge-verificado">Aprobado por Moon</span>
+                <div class="producto-img-simulador" style="background: linear-gradient(45deg, #4b0082, #000000);">
+                    [Camisa Cyberpunk]
+                </div>
+                <div class="producto-info">
+                    <p class="tienda-autor">Tienda: @AuraVibe</p>
+                    <h3 class="producto-titulo">Camisa Oversize "Cyber"</h3>
+                    <p class="producto-precio">$85.000 COP</p>
+                    <button class="btn-add-carrito" onclick="alert('¡Producto añadido al carrito!')">Añadir al Carrito</button>
+                </div>
+            </div>
+
+            <div class="producto-card">
+                <span class="badge-verificado">Aprobado por Moon</span>
+                <div class="producto-img-simulador" style="background: linear-gradient(45deg, #120c1f, #331a4d);">
+                    [Chaqueta Lunar]
+                </div>
+                <div class="producto-info">
+                    <p class="tienda-autor">Tienda: @EclipseModa</p>
+                    <h3 class="producto-titulo">Chaqueta Impermeable Lunar</h3>
+                    <p class="producto-precio">$140.000 COP</p>
+                    <button class="btn-add-carrito" onclick="alert('¡Producto añadido al carrito!')">Añadir al Carrito</button>
+                </div>
+            </div>
+
+            <div class="producto-card">
+                <span class="badge-verificado">Aprobado por Moon</span>
+                <div class="producto-img-simulador" style="background: linear-gradient(45deg, #240046, #7b2cbf);">
+                    [Pantalón Cargo Dark]
+                </div>
+                <div class="producto-info">
+                    <p class="tienda-autor">Tienda: @AuraVibe</p>
+                    <h3 class="producto-titulo">Pantalón Cargo Ajustable</h3>
+                    <p class="producto-precio">$110.000 COP</p>
+                    <button class="btn-add-carrito" onclick="alert('¡Producto añadido al carrito!')">Añadir al Carrito</button>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="dashboard-split">
+            
+            <div class="panel-box" id="panel-emprendedor">
+                <div class="seccion-titulo">
+                    <h3>Panel de Emprendimiento</h3>
+                    <p>Gestiona tu perfil, catálogo y revisa alertas en tiempo real.</p>
+                </div>
+
+                <h4 style="margin-bottom: 0.5rem; color: var(--color-neon-claro)">🔔 Alertas de Pedidos</h4>
+                <div class="alerta-pedido">
+                    <strong>¡Nuevo pedido recibido!</strong><br>
+                    1x Camisa Oversize "Cyber" - Comprador: Juan Pérez (Bogotá)
+                </div>
+
+                <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">1. Configurar Perfil de Tienda</h4>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label>Logo</label>
+                        <div class="logo-placeholder">[Subir Logo]</div>
+                    </div>
+                    <div>
+                        <div class="form-group">
+                            <label>Nombre del Emprendimiento</label>
+                            <input type="text" value="AuraVibe S.A.S">
+                        </div>
+                    </div>
+                </div>
+
+                <h4>2. Añadir Nuevo Producto al Catálogo</h4>
+                <form onsubmit="event.preventDefault(); alert('Producto enviado a revisión por el equipo de supervisión.');">
+                    <div class="form-group">
+                        <label>Nombre de la prenda</label>
+                        <input type="text" placeholder="Ej: Chaqueta Jean Custom">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label>Precio (COP)</label>
+                            <input type="number" placeholder="95000">
+                        </div>
+                        <div class="form-group">
+                            <label>Stock Disponible</label>
+                            <input type="number" placeholder="12">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select>
+                            <option>Camisas / Camisetas</option>
+                            <option>Pantalones</option>
+                            <option>Chaquetas / Abrigos</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-add-carrito btn-exito">Subir Producto a Revisión</button>
+                </form>
+
+                <h4 style="margin-top: 2rem; margin-bottom: 0.5rem;">📈 Reporte de Ventas del Mes</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Prenda</th>
+                            <th>Ventas</th>
+                            <th>Ingresos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Camisa Cyber</td>
+                            <td>14 uds</td>
+                            <td>$1.190.000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel-box destacados" id="carrito-checkout">
+                <div class="seccion-titulo">
+                    <h3>Tu Carrito</h3>
+                </div>
+
+                <div class="carrito-items">
+                    <div class="item-linea">
+                        <span class="tienda-tag">@AuraVibe</span><br>
+                        1x Camisa Oversize "Cyber" - $85.000
+                    </div>
+                    <div class="item-linea">
+                        <span class="tienda-tag">@EclipseModa</span><br>
+                        1x Chaqueta Lunar - $140.000
+                    </div>
+                </div>
+
+                <div class="total-pedido">
+                    <span>Total Pedido:</span>
+                    <span class="precio-total">$225.000 COP</span>
+                </div>
+
+                <div class="seccion-titulo">
+                    <h4>Checkout Seguro</h4>
+                </div>
+                
+                <label class="label-pago">Selecciona tu método de pago:</label>
+                <div class="metodos-pago">
+                    <div class="metodo-card active">
+                        <strong>Nequi</strong><br><span class="sub-metodo">Digital</span>
+                    </div>
+                    <div class="metodo-card">
+                        <strong>Efectivo</strong><br><span class="sub-metodo">Contraentrega</span>
+                    </div>
+                </div>
+
+                <button class="btn-add-carrito" onclick="alert('Redireccionando de forma segura a Nequi... Transacción Protegida.')">
+                    Pagar de Forma Segura
+                </button>
+                <p class="seguridad-nota">🔒 Tus transacciones están respaldadas dentro de la comunidad.</p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <footer>
+        &copy; 2026 Moon Essence. Todos los derechos reservados. Módulo de Supervisión de Contenido Activo.
+    </footer>
+
+</body>
+</html>
