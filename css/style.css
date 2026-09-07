@@ -1,0 +1,101 @@
+:root {
+    --bg-cielo: #0b131e;
+    --bg-tarjeta: #1a2332;
+    --accent-luna: #f9e8d0;
+    --texto-suave: #aebbc9;
+}
+
+html, body, .moon-bg {
+    background-color: var(--bg-cielo) !important;
+    color: #ffffff !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+}
+
+.navbar-moon {
+    background-color: #05090e !important;
+    border-bottom: 1px solid #233044;
+}
+
+.brand-text {
+    color: var(--accent-luna) !important;
+    letter-spacing: 1px;
+}
+
+.card-product {
+    background-color: var(--bg-tarjeta) !important;
+    border: 1px solid #28374d !important;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-product:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(249, 232, 208, 0.08);
+}
+
+.card-img-container {
+    height: 380px;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+.card-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.card-img-container .img-principal {
+    position: relative;
+    z-index: 1;
+}
+
+.card-img-container .img-secundaria {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.card-img-container:hover .img-secundaria {
+    opacity: 1;
+}
+
+.price-tag {
+    color: var(--accent-luna) !important;
+}
+
+.btn-moon {
+    background-color: var(--accent-luna) !important;
+    color: #0b131e !important;
+    font-weight: 600;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.btn-moon:hover {
+    background-color: #ffffff !important;
+    color: #0b131e !important;
+    box-shadow: 0 0 12px rgba(249, 232, 208, 0.4);
+}
+
+.btn-outline-moon {
+    border: 1px solid var(--accent-luna) !important;
+    color: var(--accent-luna) !important;
+    background: transparent;
+}
+
+.btn-outline-moon:hover {
+    background-color: var(--accent-luna) !important;
+    color: #0b131e !important;
+}
+
+.text-muted-moon {
+    color: var(--texto-suave) !important;
+}
