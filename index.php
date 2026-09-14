@@ -262,10 +262,12 @@ $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <nav class="navbar navbar-expand-lg navbar-moon sticky-top py-3">
     <div class="container">
         <a class="navbar-brand fw-bold fs-3 brand-text" href="index.php">Moon Essence</a>
-        <div class="d-flex align-items-center">
-            <a href="index.php" class="btn btn-sm btn-outline-moon me-2">Tienda</a>
-            <a href="admin_productos.php" class="btn btn-sm btn-outline-moon me-3">Panel Admin</a>
-            <a href="checkout.php" class="btn btn-moon px-4">Carrito (0)</a>
+        <div class="d-flex align-items-center gap-2">
+            <a href="index.php" class="btn btn-sm btn-outline-moon">Tienda</a>
+            <a href="login.php" class="btn btn-sm btn-outline-moon">Iniciar Sesión</a>
+            <a href="registro.php" class="btn btn-sm btn-moon">Registrarse</a>
+            <a href="admin_dashboard.php" class="btn btn-sm btn-outline-moon">Panel Admin</a>
+            <a href="checkout.php" class="btn btn-moon px-3 ms-2">Carrito (0)</a>
         </div>
     </div>
 </nav>
