@@ -1,6 +1,5 @@
 <?php
 session_start();
-
 $host = 'localhost';
 $db   = 'moon_essence';
 $user = 'root';
@@ -10,24 +9,33 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Error de conexión: " . $e->getMessage());
+    die("Error de conexión a la base de datos.");
 }
 
-// Consultas analíticas (se asume una tabla 'ventas' o se devuelven valores en 0 si aún no hay ventas)
+// Variables por defecto
+$ingresos_totales = 0;
+$pedidos_completados = 0;
+$ticket_promedio = 0;
+$transacciones = [];
+
+// Intentar consultar la tabla de ventas/pedidos (puedes cambiar 'pedidos' si tu tabla se llama diferente, ej: 'ordenes' o 'ventas')
 try {
-    $ingresos = $pdo->query("SELECT SUM(total) FROM ventas")->fetchColumn() ?: 0;
-    $pedidos = $pdo->query("SELECT COUNT(*) FROM ventas")->fetchColumn() ?: 0;
-    
-    $stmt_ventas = $pdo->query("SELECT * FROM ventas ORDER BY fecha DESC LIMIT 10");
-    $ventas = $stmt_ventas->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    // Si aún no has creado la tabla ventas, se inicializan variables por defecto
-    $ingresos = 0;
-    $pedidos = 0;
-    $ventas = [];
-}
+    $stmt_totales = $pdo->query("SELECT SUM(total) as ingresos, COUNT(*) as total_pedidos FROM pedidos");
+    $res = $stmt_totales->fetch(PDO::FETCH_ASSOC);
+    if ($res) {
+        $ingresos_totales = $res['ingresos'] ?? 0;
+        $pedidos_completados = $res['total_pedidos'] ?? 0;
+        if ($pedidos_completados > 0) {
+            $ticket_promedio = $ingresos_totales / $pedidos_completados;
+        }
+    }
 
-$ticket_promedio = $pedidos > 0 ? $ingresos / $pedidos : 0;
+    $stmt_trans = $pdo->query("SELECT * FROM pedidos ORDER BY id_pedido DESC LIMIT 10");
+    $transacciones = $stmt_trans->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    // Si la tabla no existe o tiene otro nombre, evitamos que rompa la página
+    $transacciones = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -36,6 +44,7 @@ $ticket_promedio = $pedidos > 0 ? $ingresos / $pedidos : 0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moon Essence - Reportes Analíticos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         :root {
             --bg-cielo: #0b131e;
@@ -43,152 +52,151 @@ $ticket_promedio = $pedidos > 0 ? $ingresos / $pedidos : 0;
             --accent-luna: #f9e8d0;
             --texto-suave: #aebbc9;
         }
-
         body {
             background-color: var(--bg-cielo);
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-
         .navbar-moon {
             background-color: rgba(5, 9, 14, 0.95);
             border-bottom: 1px solid #233044;
             backdrop-filter: blur(8px);
         }
-
         .brand-text {
             color: var(--accent-luna) !important;
             letter-spacing: 1.5px;
         }
-
-        .card-kpi {
+        .card-admin {
             background-color: var(--bg-tarjeta);
             border: 1px solid #28374d;
             border-radius: 14px;
         }
-
-        .btn-moon {
-            background-color: var(--accent-luna);
-            color: #0b131e;
-            font-weight: 600;
-            border: none;
-            border-radius: 8px;
+        .kpi-card {
+            background-color: var(--bg-tarjeta);
+            border: 1px solid #28374d;
+            border-radius: 12px;
+            transition: transform 0.2s;
         }
-
-        .btn-outline-moon {
-            border: 1px solid var(--accent-luna);
+        .kpi-card:hover {
+            border-color: var(--accent-luna);
+        }
+        .table-moon {
+            color: #ffffff;
+            vertical-align: middle;
+        }
+        .table-moon th {
+            background-color: #121a24 !important;
             color: var(--accent-luna);
-            border-radius: 8px;
+            border-color: #28374d;
         }
-
-        .btn-outline-moon:hover {
+        .table-moon td {
+            background-color: var(--bg-tarjeta) !important;
+            color: #ffffff !important;
+            border-color: #28374d;
+        }
+        .btn-beigecito {
             background-color: var(--accent-luna);
             color: #0b131e;
+            border: none;
+            font-weight: 600;
         }
-
+        .btn-beigecito:hover {
+            background-color: #ffffff;
+            color: #0b131e;
+        }
         .text-muted-moon {
             color: var(--texto-suave) !important;
         }
-
-        .table-moon {
-            background-color: var(--bg-tarjeta);
-            color: #ffffff;
-            border-color: #28374d;
-        }
-
-        .table-moon th {
-            background-color: #05090e;
-            color: var(--accent-luna);
-            border-color: #28374d;
-        }
-
-        .table-moon td {
-            border-color: #28374d;
-        }
-
         footer {
             background-color: #05090e;
             border-top: 1px solid #233044;
             color: var(--texto-suave);
+            margin-top: auto;
         }
     </style>
 </head>
 <body>
 
-<!-- Menú Principal -->
 <nav class="navbar navbar-expand-lg navbar-moon sticky-top py-3">
     <div class="container">
-        <a class="navbar-brand fw-bold fs-3 brand-text" href="index.php">Moon Essence</a>
-        <div class="d-flex align-items-center gap-2">
-            <a href="admin_dashboard.php" class="btn btn-sm btn-outline-moon">← Volver al Panel</a>
+        <a class="navbar-brand fw-bold fs-3 brand-text" href="admin_dashboard.php">
+            <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <a href="admin_dashboard.php" class="btn btn-sm btn-beigecito"><i class="bi bi-arrow-left me-1"></i> Volver al Panel</a>
         </div>
     </div>
 </nav>
 
-<!-- Contenido del Reporte -->
 <div class="container my-5">
     <div class="mb-4">
-        <h2 class="brand-text fw-bold m-0">Reportes Analíticos</h2>
+        <h2 class="brand-text fw-bold"><i class="bi bi-bar-chart-line-fill me-2"></i>Reportes Analíticos</h2>
         <p class="text-muted-moon">Métricas de rendimiento financiero y registro de ventas.</p>
     </div>
 
-    <!-- Indicadores KPIs -->
+    <!-- Tarjetas de KPIs -->
     <div class="row g-4 mb-5">
         <div class="col-md-4">
-            <div class="card-kpi p-4 text-center">
-                <small class="text-uppercase text-muted-moon fw-bold">Ingresos Totales</small>
-                <h2 class="brand-text fw-bold mt-2">$<?= number_format($ingresos, 2, '.', ',') ?></h2>
+            <div class="kpi-card p-4 text-center shadow">
+                <span class="text-muted-moon text-uppercase small fw-bold tracking-wider">Ingresos Totales</span>
+                <h2 class="text-success fw-bold mt-2 mb-0">$<?= number_format($ingresos_totales, 2, ',', '.') ?></h2>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card-kpi p-4 text-center">
-                <small class="text-uppercase text-muted-moon fw-bold">Pedidos Completados</small>
-                <h2 class="text-white fw-bold mt-2"><?= $pedidos ?></h2>
+            <div class="kpi-card p-4 text-center shadow">
+                <span class="text-muted-moon text-uppercase small fw-bold tracking-wider">Pedidos Completados</span>
+                <h2 class="brand-text fw-bold mt-2 mb-0"><?= $pedidos_completados ?></h2>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card-kpi p-4 text-center">
-                <small class="text-uppercase text-muted-moon fw-bold">Ticket Promedio</small>
-                <h2 class="text-white fw-bold mt-2">$<?= number_format($ticket_promedio, 2, '.', ',') ?></h2>
+            <div class="kpi-card p-4 text-center shadow">
+                <span class="text-muted-moon text-uppercase small fw-bold tracking-wider">Ticket Promedio</span>
+                <h2 class="text-warning fw-bold mt-2 mb-0">$<?= number_format($ticket_promedio, 2, ',', '.') ?></h2>
             </div>
         </div>
     </div>
 
-    <!-- Tabla de Detalle -->
-    <h4 class="text-white mb-3">Últimas Transacciones</h4>
-    <div class="table-responsive rounded border border-secondary">
-        <table class="table table-moon mb-0 align-middle">
-            <thead>
-                <tr>
-                    <th>N° Pedido</th>
-                    <th>Fecha</th>
-                    <th>Cliente</th>
-                    <th>Total</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($ventas)): ?>
-                    <?php foreach ($ventas as $v): ?>
+    <!-- Tabla de Transacciones -->
+    <div class="card card-admin p-4 shadow-lg">
+        <h4 class="brand-text mb-3"><i class="bi bi-clock-history me-2"></i>Últimas Transacciones</h4>
+
+        <?php if (empty($transacciones)): ?>
+            <div class="text-center py-5">
+                <i class="bi bi-receipt fs-1 text-muted-moon"></i>
+                <p class="text-muted-moon mt-3 fs-5">No se registraron ventas en el sistema por el momento.</p>
+            </div>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-moon align-middle">
+                    <thead>
                         <tr>
-                            <td>#<?= htmlspecialchars($v['id_venta'] ?? $v['id']) ?></td>
-                            <td><?= htmlspecialchars($v['fecha']) ?></td>
-                            <td><?= htmlspecialchars($v['cliente'] ?? 'Cliente General') ?></td>
-                            <td class="brand-text fw-bold">$<?= number_format($v['total'], 2, '.', ',') ?></td>
-                            <td><span class="badge bg-success">Completado</span></td>
+                            <th>N° Pedido</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Estado</th>
                         </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="5" class="text-center py-4 text-muted-moon">No se registraron ventas en el sistema por el momento.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($transacciones as $t): ?>
+                            <tr>
+                                <td class="fw-bold text-warning">#<?= $t['id_pedido'] ?? $t['id'] ?></td>
+                                <td><?= htmlspecialchars($t['fecha'] ?? 'N/D') ?></td>
+                                <td><?= htmlspecialchars($t['cliente'] ?? $t['nombre_cliente'] ?? 'Cliente General') ?></td>
+                                <td class="text-success fw-bold">$<?= number_format($t['total'], 2, ',', '.') ?></td>
+                                <td><span class="badge bg-success"><?= htmlspecialchars($t['estado'] ?? 'Completado') ?></span></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
-<!-- Footer -->
 <footer class="py-4 mt-auto">
     <div class="container text-center">
         <p class="brand-text fw-bold mb-1 fs-5">Moon Essence</p>
@@ -196,5 +204,6 @@ $ticket_promedio = $pedidos > 0 ? $ingresos / $pedidos : 0;
     </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

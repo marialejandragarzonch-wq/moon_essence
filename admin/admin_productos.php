@@ -1,126 +1,185 @@
 <?php
-if (file_exists(__DIR__ . '/config/conexion.php')) {
-    include_once __DIR__ . '/config/conexion.php';
-} elseif (file_exists(__DIR__ . '/conexion.php')) {
-    include_once __DIR__ . '/conexion.php';
+session_start();
+$host = 'localhost';
+$db   = 'moon_essence';
+$user = 'root';
+$pass = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Error de conexión a la base de datos.");
 }
 
-$con = $conexion ?? $conn ?? $db ?? null;
+// Obtener productos
+$productos = [];
+try {
+    $stmt = $pdo->query("SELECT * FROM productos ORDER BY id_producto DESC");
+    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $productos = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Productos - Moon Essence</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        body { background-color: #0b0f19 !important; color: #ffffff !important; font-family: system-ui, sans-serif; }
-        .navbar-custom { background-color: #0b0f19 !important; border-bottom: 1px solid #1e293b; }
-        .card-custom { background-color: #111827 !important; border: 1px solid #1f293d !important; border-radius: 12px; }
-        .btn-principal { background-color: #3b82f6 !important; color: #ffffff !important; font-weight: 600; border: none; border-radius: 20px; }
-        .btn-principal:hover { background-color: #2563eb !important; }
+        :root {
+            --bg-cielo: #0b131e;
+            --bg-tarjeta: #1a2332;
+            --accent-luna: #f9e8d0;
+            --texto-suave: #aebbc9;
+        }
+        body {
+            background-color: var(--bg-cielo);
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-moon {
+            background-color: rgba(5, 9, 14, 0.95);
+            border-bottom: 1px solid #233044;
+            backdrop-filter: blur(8px);
+        }
+        .brand-text {
+            color: var(--accent-luna) !important;
+            letter-spacing: 1.5px;
+            text-decoration: none;
+        }
+        .card-admin {
+            background-color: var(--bg-tarjeta);
+            border: 1px solid #28374d;
+            border-radius: 14px;
+        }
+        .table-moon {
+            color: #ffffff;
+            vertical-align: middle;
+        }
+        .table-moon th {
+            background-color: #121a24 !important;
+            color: var(--accent-luna);
+            border-color: #28374d;
+        }
+        .table-moon td {
+            background-color: var(--bg-tarjeta) !important;
+            color: #ffffff !important;
+            border-color: #28374d;
+        }
+        .img-tabla {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #28374d;
+        }
+        .btn-beigecito {
+            background-color: var(--accent-luna);
+            color: #0b131e;
+            border: none;
+            font-weight: 600;
+        }
+        .btn-beigecito:hover {
+            background-color: #ffffff;
+            color: #0b131e;
+        }
+        .text-muted-moon {
+            color: var(--texto-suave) !important;
+        }
+        footer {
+            background-color: #05090e;
+            border-top: 1px solid #233044;
+            color: var(--texto-suave);
+            margin-top: auto;
+        }
     </style>
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body>
 
-<nav class="navbar navbar-expand-lg navbar-custom py-3 px-4 mb-4">
-    <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-white fs-4" href="index.php">Moon Essence</a>
+<!-- Barra de navegación unificada -->
+<nav class="navbar navbar-expand-lg navbar-moon sticky-top py-3">
+    <div class="container">
+        <a class="navbar-brand fw-bold fs-3 brand-text" href="admin_dashboard.php">
+            <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence <small class="fs-6 text-muted-moon">| Admin</small>
+        </a>
         <div class="d-flex align-items-center gap-2">
-            <a href="admin_categorias.php" class="btn btn-sm btn-outline-light rounded-pill px-3">Categorías</a>
-            <span class="btn btn-sm btn-outline-light active rounded-pill px-3">Productos</span>
-            <a href="index.php" class="btn btn-sm btn-outline-light rounded-pill px-3">Ver Tienda</a>
+            <a href="admin_dashboard.php" class="btn btn-sm btn-outline-light"><i class="bi bi-speedometer2 me-1"></i> Panel</a>
+            <a href="admin_categorias.php" class="btn btn-sm btn-outline-light"><i class="bi bi-tags me-1"></i> Categorías</a>
+            <a href="../index.php" class="btn btn-sm btn-beigecito"><i class="bi bi-shop me-1"></i> Ver Tienda</a>
+            <a href="../auth/logout.php" class="btn btn-sm btn-danger"><i class="bi bi-box-arrow-right"></i> Salir</a>
         </div>
     </div>
 </nav>
 
-<div class="container my-auto pb-5">
-    <div class="card card-custom p-2">
-        <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-secondary pb-3">
-                <div>
-                    <h3 class="fw-bold m-0 text-white"><i class="fa-solid fa-shirt me-2 text-primary"></i>Gestión de Productos</h3>
-                    <p class="text-light opacity-75 small m-0 mt-1">Catálogo de prendas registradas en Moon Essence.</p>
-                </div>
-                <a href="crear_producto.php" class="btn btn-principal px-4 py-2"><i class="fa-solid fa-plus me-1"></i> Nuevo Producto</a>
+<div class="container my-5">
+    <div class="card card-admin p-4 shadow-lg">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="brand-text mb-1"><i class="bi bi-box-seam me-2"></i>Gestión de Productos</h3>
+                <p class="text-muted-moon small m-0">Inventario y catálogo de prendas.</p>
             </div>
+            <a href="crear_producto.php" class="btn btn-beigecito"><i class="bi bi-plus-lg me-1"></i> Nuevo Producto</a>
+        </div>
 
+        <?php if (empty($productos)): ?>
+            <div class="text-center py-5">
+                <i class="bi bi-box2 fs-1 text-muted-moon"></i>
+                <p class="text-muted-moon mt-3">No hay productos registrados.</p>
+            </div>
+        <?php else: ?>
             <div class="table-responsive">
-                <table class="table table-light table-hover table-striped align-middle m-0 rounded overflow-hidden">
-                    <thead class="table-dark">
+                <table class="table table-moon align-middle">
+                    <thead>
                         <tr>
-                            <th style="color: #ffffff;">ID</th>
-                            <th style="color: #ffffff;">Imagen</th>
-                            <th style="color: #ffffff;">Prenda</th>
-                            <th style="color: #ffffff;">Categoría</th>
-                            <th style="color: #ffffff;">Precio</th>
-                            <th style="color: #ffffff;">Stock</th>
-                            <th class="text-center" style="color: #ffffff;">Acciones</th>
+                            <th>Imagen</th>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php
-                        if ($con) {
-                            $query = "SELECT p.*, c.nombre as cat_nombre, c.nombre_categoria 
-                                      FROM productos p 
-                                      LEFT JOIN categorias c ON p.id_categoria = c.id_categoria 
-                                      ORDER BY p.id_producto DESC";
-                            $resultado = mysqli_query($con, $query);
-                            
-                            if ($resultado && mysqli_num_rows($resultado) > 0) {
-                                while($row = mysqli_fetch_assoc($resultado)) {
-                                    $cat = $row['nombre_categoria'] ?? $row['cat_nombre'] ?? 'Sin categoría';
-                                    $nombre_prenda = $row['nombre'] ?? $row['nombre_producto'] ?? 'Prenda sin nombre';
-                                    $stock = $row['stock'] ?? '0';
-
-                                    // Busca el nombre de la foto en la base de datos
-                                    $foto_db = $row['imagen'] ?? $row['imagen_url'] ?? $row['foto'] ?? $row['img'] ?? '';
-
-                                    // Apunta a la carpeta uploads/
-                                    if (!empty($foto_db)) {
-                                        if (filter_var($foto_db, FILTER_VALIDATE_URL)) {
-                                            $src_imagen = $foto_db;
-                                        } else {
-                                            $nombre_archivo = basename($foto_db);
-                                            $src_imagen = 'uploads/' . $nombre_archivo;
-                                        }
-                                    } else {
-                                        $src_imagen = 'https://via.placeholder.com/150/1e293b/ffffff?text=Sin+Foto';
-                                    }
-                        ?>
-                        <tr>
-                            <td class="fw-bold" style="color: #1e293b !important;"><?=$row['id_producto']?></td>
-                            <td>
-                                <img src="<?=$src_imagen?>" 
-                                     alt="<?=$nombre_prenda?>" 
-                                     style="width: 45px; height: 45px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1;" 
-                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/150/1e293b/ffffff?text=Sin+Foto';">
-                            </td>
-                            <td class="fw-bold" style="color: #0f172a !important;"><?=$nombre_prenda?></td>
-                            <td><span class="badge bg-dark text-white px-3 py-2 rounded-pill"><?=$cat?></span></td>
-                            <td class="fw-bold" style="color: #0284c7 !important;">$<?=number_format($row['precio'], 0, ',', '.')?></td>
-                            <td style="color: #334155 !important;"><?=$stock?> uds</td>
-                            <td class="text-center">
-                                <a href="editar_producto.php?id=<?=$row['id_producto']?>" class="btn btn-sm btn-primary me-1" title="Editar"><i class="fa-solid fa-pen"></i></a>
-                                <a href="eliminar_producto.php?id=<?=$row['id_producto']?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Seguro que deseas eliminar este producto?')" title="Eliminar"><i class="fa-solid fa-trash"></i></a>
-                            </td>
-                        </tr>
-                        <?php 
-                                }
-                            } else {
-                                echo '<tr><td colspan="7" class="text-center text-dark py-4">No hay productos registrados aún.</td></tr>';
-                            }
-                        } else {
-                            echo '<tr><td colspan="7" class="text-center text-danger py-4">Error de conexión a la base de datos.</td></tr>';
-                        }
-                        ?>
+                        <?php foreach ($productos as $prod): ?>
+                            <tr>
+                                <td>
+                                    <?php if (!empty($prod['imagen'])): ?>
+                                        <img src="../uploads/<?= htmlspecialchars($prod['imagen']) ?>" alt="Producto" class="img-tabla">
+                                    <?php else: ?>
+                                        <span class="text-muted-moon small">Sin foto</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="fw-bold text-warning">#<?= $prod['id_producto'] ?></td>
+                                <td class="fw-bold"><?= htmlspecialchars($prod['nombre_producto']) ?></td>
+                                <td class="text-success fw-bold">$<?= number_format($prod['precio'], 2, ',', '.') ?></td>
+                                <td><span class="badge bg-info text-dark"><?= $prod['stock'] ?> un.</span></td>
+                                <td class="text-end">
+                                    <a href="editar_producto.php?id=<?= $prod['id_producto'] ?>" class="btn btn-sm btn-outline-warning me-1"><i class="bi bi-pencil"></i></a>
+                                    <a href="eliminar_producto.php?id=<?= $prod['id_producto'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro de eliminar este producto?');"><i class="bi bi-trash"></i></a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-        </div>
+        <?php endif; ?>
     </div>
 </div>
 
+<footer class="py-4 mt-auto">
+    <div class="container text-center">
+        <p class="brand-text fw-bold mb-1 fs-5">Moon Essence</p>
+        <p class="small m-0">© 2026 Todos los derechos reservados.</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

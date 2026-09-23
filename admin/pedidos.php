@@ -9,24 +9,19 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Error de conexión a la base de datos.");
+    die("Error de conexión: " . $e->getMessage());
 }
 
-// Obtener categorías de la tabla real 'categorias'
-$categorias = [];
-try {
-    $stmt = $pdo->query("SELECT * FROM categorias ORDER BY id_categoria DESC");
-    $categorias = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    $categorias = [];
-}
+// Consultar todos los pedidos ordenados del más reciente al más antiguo
+$stmt = $pdo->query("SELECT * FROM pedidos ORDER BY fecha_pedido DESC");
+$pedidos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Categorías - Moon Essence</title>
+    <title>Moon Essence - Panel de Administración | Pedidos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
@@ -52,7 +47,6 @@ try {
         .brand-text {
             color: var(--accent-luna) !important;
             letter-spacing: 1.5px;
-            text-decoration: none;
         }
         .card-admin {
             background-color: var(--bg-tarjeta);
@@ -73,15 +67,9 @@ try {
             color: #ffffff !important;
             border-color: #28374d;
         }
-        .btn-beigecito {
-            background-color: var(--accent-luna);
-            color: #0b131e;
-            border: none;
-            font-weight: 600;
-        }
-        .btn-beigecito:hover {
-            background-color: #ffffff;
-            color: #0b131e;
+        .badge-pendiente {
+            background-color: #ffc107;
+            color: #000;
         }
         .text-muted-moon {
             color: var(--texto-suave) !important;
@@ -96,35 +84,29 @@ try {
 </head>
 <body>
 
-<!-- Barra de navegación unificada -->
 <nav class="navbar navbar-expand-lg navbar-moon sticky-top py-3">
     <div class="container">
-        <a class="navbar-brand fw-bold fs-3 brand-text" href="admin_dashboard.php">
+        <a class="navbar-brand fw-bold fs-3 brand-text" href="../index.php">
             <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence <small class="fs-6 text-muted-moon">| Admin</small>
         </a>
-        <div class="d-flex align-items-center gap-2">
-            <a href="admin_dashboard.php" class="btn btn-sm btn-outline-light"><i class="bi bi-speedometer2 me-1"></i> Panel</a>
-            <a href="admin_productos.php" class="btn btn-sm btn-outline-light"><i class="bi bi-box-seam me-1"></i> Productos</a>
-            <a href="../index.php" class="btn btn-sm btn-beigecito"><i class="bi bi-shop me-1"></i> Ver Tienda</a>
-            <a href="../auth/logout.php" class="btn btn-sm btn-danger"><i class="bi bi-box-arrow-right"></i> Salir</a>
-        </div>
+        <a href="../index.php" class="btn btn-outline-light btn-sm"><i class="bi bi-shop me-1"></i> Ver Tienda</a>
     </div>
 </nav>
 
 <div class="container my-5">
-    <div class="card card-admin p-4 shadow-lg">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h3 class="brand-text mb-1"><i class="bi bi-tags-fill me-2"></i>Gestión de Categorías</h3>
-                <p class="text-muted-moon small m-0">Secciones activas de tu catálogo.</p>
-            </div>
-            <a href="crear_categoria.php" class="btn btn-beigecito"><i class="bi bi-plus-lg me-1"></i> Nueva Categoría</a>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="brand-text mb-1"><i class="bi bi-clipboard2-data me-2"></i>Gestión de Pedidos</h2>
+            <p class="text-muted-moon m-0">Aquí puedes ver los pedidos realizados por los clientes en la tienda.</p>
         </div>
+        <span class="badge bg-secondary fs-6 p-2">Total Pedidos: <?= count($pedidos) ?></span>
+    </div>
 
-        <?php if (empty($categorias)): ?>
+    <div class="card card-admin p-4 shadow-lg">
+        <?php if (empty($pedidos)): ?>
             <div class="text-center py-5">
-                <i class="bi bi-folder2-open fs-1 text-muted-moon"></i>
-                <p class="text-muted-moon mt-3">No hay categorías registradas o la tabla está vacía.</p>
+                <i class="bi bi-inbox fs-1 text-muted-moon"></i>
+                <p class="text-muted-moon mt-3 fs-5">Aún no se ha registrado ningún pedido bajo la luna.</p>
             </div>
         <?php else: ?>
             <div class="table-responsive">
@@ -132,21 +114,34 @@ try {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Nombre</th>
-                            <th>Descripción</th>
-                            <th class="text-end">Acciones</th>
+                            <th>Cliente</th>
+                            <th>Contacto / Ciudad</th>
+                            <th>Dirección</th>
+                            <th>Método Pago</th>
+                            <th>Total</th>
+                            <th>Fecha</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($categorias as $cat): ?>
+                        <?php foreach ($pedidos as $p): ?>
                             <tr>
-                                <td class="fw-bold text-warning">#<?= $cat['id_categoria'] ?></td>
-                                <td class="fw-bold"><?= htmlspecialchars($cat['nombre_categoria']) ?></td>
-                                <td class="text-muted-moon"><?= htmlspecialchars($cat['descripcion'] ?? 'Sin descripción') ?></td>
-                                <td class="text-end">
-                                    <a href="editar_categoria.php?id=<?= $cat['id_categoria'] ?>" class="btn btn-sm btn-outline-warning me-1"><i class="bi bi-pencil"></i></a>
-                                    <a href="eliminar_categoria.php?id=<?= $cat['id_categoria'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro de eliminar esta categoría?');"><i class="bi bi-trash"></i></a>
+                                <td class="fw-bold text-warning">#ME-<?= $p['id_pedido'] ?></td>
+                                <td>
+                                    <div class="fw-bold"><?= htmlspecialchars($p['nombre_cliente']) ?></div>
                                 </td>
+                                <td>
+                                    <div><i class="bi bi-telephone me-1"></i><?= htmlspecialchars($p['telefono']) ?></div>
+                                    <small class="text-muted-moon"><i class="bi bi-geo-alt me-1"></i><?= htmlspecialchars($p['ciudad']) ?></small>
+                                </td>
+                                <td>
+                                    <div><?= htmlspecialchars($p['direccion']) ?></div>
+                                    <?php if (!empty($p['notas'])): ?>
+                                        <small class="text-info">Nota: <?= htmlspecialchars($p['notas']) ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><span class="badge bg-dark border border-secondary"><?= htmlspecialchars($p['metodo_pago'] ?? 'Contra Entrega') ?></span></td>
+                                <td class="text-success fw-bold">$<?= number_format($p['total'], 0, ',', '.') ?></td>
+                                <td class="small text-muted-moon"><?= $p['fecha_pedido'] ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -159,7 +154,7 @@ try {
 <footer class="py-4 mt-auto">
     <div class="container text-center">
         <p class="brand-text fw-bold mb-1 fs-5">Moon Essence</p>
-        <p class="small m-0">© 2026 Todos los derechos reservados.</p>
+        <p class="small m-0">Panel de Control - © 2026</p>
     </div>
 </footer>
 
