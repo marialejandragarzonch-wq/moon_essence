@@ -9,65 +9,27 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Error de conexión: " . $e->getMessage());
+    die("Error de conexión a la base de datos.");
 }
 
-// Procesar actualización de cantidades si envían el formulario
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['actualizar_cantidades'])) {
-    if (isset($_POST['cantidades']) && is_array($_POST['cantidades'])) {
-        foreach ($_POST['cantidades'] as $clave => $nueva_cant) {
-            $nueva_cant = intval($nueva_cant);
-            if ($nueva_cant > 0 && isset($_SESSION['carrito'][$clave])) {
-                $_SESSION['carrito'][$clave]['cantidad'] = $nueva_cant;
-            } else if ($nueva_cant <= 0 && isset($_SESSION['carrito'][$clave])) {
-                unset($_SESSION['carrito'][$clave]);
-            }
-        }
+// Eliminar producto del carrito
+if (isset($_GET['eliminar'])) {
+    $index_eliminar = $_GET['eliminar'];
+    if (isset($_SESSION['carrito'][$index_eliminar])) {
+        unset($_SESSION['carrito'][$index_eliminar]);
+        $_SESSION['carrito'] = array_values($_SESSION['carrito']);
     }
     header("Location: checkout.php");
-    exit();
+    exit;
 }
 
-try {
-    $stmt_cat = $pdo->query("SELECT * FROM categorias ORDER BY id_categoria ASC");
-    $categorias_menu = $stmt_cat->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $categorias_menu = [];
-}
+$carrito = $_SESSION['carrito'] ?? [];
+$subtotal_general = 0;
+$total_articulos = 0;
 
-$carrito_productos = [];
-$total_general = 0;
-$cantidad_total_articulos = 0;
-
-if (isset($_SESSION['carrito']) && !empty($_SESSION['carrito'])) {
-    foreach ($_SESSION['carrito'] as $clave => $item) {
-        $id_prod = $item['id_producto'];
-        $talla = $item['talla'];
-        $cantidad = $item['cantidad'];
-
-        $stmt = $pdo->prepare("SELECT * FROM productos WHERE id_producto = ?");
-        $stmt->execute([$id_prod]);
-        $prod = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($prod) {
-            $prod['talla'] = $talla;
-            $prod['cantidad'] = $cantidad;
-            $prod['subtotal'] = $prod['precio'] * $cantidad;
-            $prod['clave_carrito'] = $clave;
-            $total_general += $prod['subtotal'];
-            $cantidad_total_articulos += $cantidad;
-            $carrito_productos[] = $prod;
-        }
-    }
-}
-
-function limpiarRutaCheckout($img) {
-    $img = trim($img ?? '');
-    if (empty($img)) return '';
-    if (strpos($img, 'uploads/') === 0 || strpos($img, 'http') === 0) {
-        return $img;
-    }
-    return 'uploads/' . $img;
+foreach ($carrito as $item) {
+    $subtotal_general += ($item['precio'] ?? 0) * ($item['cantidad'] ?? 1);
+    $total_articulos += ($item['cantidad'] ?? 1);
 }
 ?>
 <!DOCTYPE html>
@@ -85,109 +47,123 @@ function limpiarRutaCheckout($img) {
             --accent-luna: #f9e8d0;
             --texto-suave: #aebbc9;
         }
-        body {
-            background-color: var(--bg-cielo);
-            color: #ffffff;
+
+        html, body, .moon-bg {
+            background-color: var(--bg-cielo) !important;
+            color: #ffffff !important;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
+
         .navbar-moon {
-            background-color: rgba(5, 9, 14, 0.95);
+            background-color: #05090e !important;
             border-bottom: 1px solid #233044;
-            backdrop-filter: blur(8px);
         }
+
         .brand-text {
             color: var(--accent-luna) !important;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
+            text-decoration: none;
         }
-        .nav-link-moon {
-            color: var(--texto-suave) !important;
-        }
-        .nav-link-moon:hover {
-            color: var(--accent-luna) !important;
-        }
-        .dropdown-menu-moon {
-            background-color: var(--bg-tarjeta);
-            border: 1px solid #28374d;
-            border-radius: 8px;
-        }
-        .dropdown-item-moon {
-            color: var(--texto-suave);
-            padding: 8px 16px;
-        }
-        .dropdown-item-moon:hover {
-            background-color: rgba(249, 232, 208, 0.1);
-            color: var(--accent-luna);
-        }
-        .card-cart {
-            background-color: var(--bg-tarjeta);
-            border: 1px solid #28374d;
-            border-radius: 14px;
-        }
-        .table-moon {
-            color: #ffffff;
-            vertical-align: middle;
+
+        .card-product {
             background-color: var(--bg-tarjeta) !important;
-        }
-        .table-moon th {
-            border-color: #28374d !important;
-            color: var(--texto-suave) !important;
-            background-color: #121a24 !important;
-        }
-        .table-moon td {
-            border-color: #28374d !important;
-            background-color: var(--bg-tarjeta) !important;
-            color: #ffffff !important;
-        }
-        .table-moon tr {
-            background-color: var(--bg-tarjeta) !important;
-        }
-        .img-carrito {
-            width: 70px;
-            height: 70px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid #28374d;
-        }
-        .form-control-cantidad {
-            background-color: #121a24 !important;
             border: 1px solid #28374d !important;
-            color: #ffffff !important;
-            width: 70px;
-            text-align: center;
-            border-radius: 6px;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
+
         .btn-moon {
-            background-color: var(--accent-luna);
-            color: #0b131e;
+            background-color: var(--accent-luna) !important;
+            color: #0b131e !important;
             font-weight: 600;
             border: none;
-            border-radius: 8px;
             transition: all 0.2s ease;
         }
+
         .btn-moon:hover {
-            background-color: #ffffff;
+            background-color: #ffffff !important;
+            color: #0b131e !important;
             box-shadow: 0 0 12px rgba(249, 232, 208, 0.4);
         }
+
         .btn-outline-moon {
-            border: 1px solid var(--accent-luna);
-            color: var(--accent-luna);
-            border-radius: 8px;
+            border: 1px solid var(--accent-luna) !important;
+            color: var(--accent-luna) !important;
+            background: transparent;
         }
+
         .btn-outline-moon:hover {
-            background-color: var(--accent-luna);
-            color: #0b131e;
+            background-color: var(--accent-luna) !important;
+            color: #0b131e !important;
         }
+
         .text-muted-moon {
             color: var(--texto-suave) !important;
         }
-        footer {
-            background-color: #05090e;
-            border-top: 1px solid #233044;
-            color: var(--texto-suave);
-            margin-top: auto;
+
+        /* Estilos ajustados para la tabla del Carrito */
+        .table-moon {
+            color: #ffffff !important;
+            vertical-align: middle;
+            font-size: 1.05rem;
+        }
+
+        .table-moon th {
+            background-color: transparent !important;
+            color: #ffffff !important;
+            border-bottom: 2px solid #384a66;
+            font-weight: 600;
+            padding: 16px 12px;
+        }
+
+        .table-moon td {
+            background-color: transparent !important;
+            border-bottom: 1px solid #28374d;
+            padding: 18px 12px;
+            color: #ffffff !important;
+        }
+
+        .img-carrito {
+            width: 80px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #384a66;
+        }
+
+        .badge-talla {
+            font-size: 0.95rem;
+            padding: 5px 12px;
+            background-color: #2a3a52 !important;
+            color: #ffffff;
+            border: 1px solid #485c7b;
+            text-transform: uppercase;
+        }
+
+        .precio-texto {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+
+        .subtotal-texto {
+            color: #2ecc71 !important;
+            font-weight: 700;
+        }
+
+        .agradecimiento-box {
+            border-top: 1px dashed #28374d;
+            margin-top: 40px;
+            padding-top: 25px;
+            text-align: center;
+        }
+
+        .agradecimiento-texto {
+            color: var(--accent-luna);
+            font-style: italic;
+            font-size: 1.15rem;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -198,136 +174,141 @@ function limpiarRutaCheckout($img) {
         <a class="navbar-brand fw-bold fs-3 brand-text" href="index.php">
             <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence
         </a>
-        
-        <button class="navbar-toggler border-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMoonContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarMoonContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3">
-                <li class="nav-item">
-                    <a class="nav-link nav-link-moon fw-semibold" href="index.php"><i class="bi bi-house me-1"></i> Inicio</a>
-                </li>
-            </ul>
-
-            <div class="d-flex align-items-center gap-2">
-                <a href="checkout.php" class="btn btn-moon px-3 ms-1"><i class="bi bi-cart me-1"></i> Carrito (<?= $cantidad_total_articulos ?>)</a>
-            </div>
+        <div class="d-flex align-items-center gap-3">
+            <a href="index.php" class="btn btn-outline-moon"><i class="bi bi-house me-1"></i> Inicio</a>
+            <span class="btn btn-moon disabled"><i class="bi bi-cart me-1"></i> Carrito (<?= $total_articulos ?>)</span>
         </div>
     </div>
 </nav>
 
 <div class="container my-5">
-    <h2 class="brand-text mb-4"><i class="bi bi-bag-check me-2"></i>Tu Carrito de Compras</h2>
-    
-    <?php if (empty($carrito_productos)): ?>
-        <div class="row">
-            <div class="col-12">
-                <div class="card card-cart p-4 text-center py-5">
-                    <i class="bi bi-cart-x display-3 text-muted-moon mb-3"></i>
-                    <h4 class="text-white">Tu carrito está vacío</h4>
-                    <p class="text-muted-moon">Aún no has agregado ninguna prenda de Moon Essence.</p>
-                    <a href="index.php" class="btn btn-moon mt-3 w-25 mx-auto">Explorar Catálogo</a>
-                </div>
+    <h2 class="brand-text mb-4 fw-bold"><i class="bi bi-bag-check me-2"></i>Tu Carrito de Compras</h2>
+
+    <?php if (empty($carrito)): ?>
+        <div class="card card-product p-5 text-center">
+            <i class="bi bi-cart-x fs-1 text-muted-moon mb-3"></i>
+            <h4 class="text-white">Tu carrito está vacío</h4>
+            <p class="text-muted-moon fs-5">Agrega algunas prendas a tu colección.</p>
+            <div class="mt-3">
+                <a href="index.php" class="btn btn-moon btn-lg">Ir a Comprar</a>
             </div>
         </div>
     <?php else: ?>
-        <form action="checkout.php" method="POST">
-            <div class="row">
-                <div class="col-lg-8 mb-4">
-                    <div class="card card-cart p-4">
-                        <div class="table-responsive">
-                            <table class="table table-moon align-middle mb-0">
-                                <thead>
+        <div class="row g-4">
+            <!-- Tabla de productos -->
+            <div class="col-lg-8">
+                <div class="card card-product p-4 shadow-sm">
+                    <div class="table-responsive">
+                        <table class="table table-moon mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col" style="width: 40%;">Prenda</th>
+                                    <th scope="col" class="text-center">Talla</th>
+                                    <th scope="col" class="text-center">Precio</th>
+                                    <th scope="col" class="text-center">Cantidad</th>
+                                    <th scope="col" class="text-center">Subtotal</th>
+                                    <th scope="col" class="text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($carrito as $idx => $item): 
+                                    $nombre_prod = $item['nombre_producto'] ?? $item['nombre'] ?? 'Prenda Moon Essence';
+                                    $img_db = trim($item['imagen'] ?? '');
+                                    $ruta_img = "";
+                                    preg_match('/^(\d+)/', $img_db, $matches);
+                                    if (!empty($matches[1])) {
+                                        $prefijo = $matches[1];
+                                        if (is_dir('uploads')) {
+                                            $archivos = scandir('uploads');
+                                            foreach ($archivos as $archivo) {
+                                                if ($archivo === '.' || $archivo === '..') continue;
+                                                if (strpos($archivo, $prefijo) === 0) {
+                                                    if (strpos($archivo, '_1') !== false || empty($ruta_img)) {
+                                                        $ruta_img = "uploads/" . $archivo;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (empty($ruta_img) && !empty($img_db) && file_exists("uploads/" . $img_db)) {
+                                        $ruta_img = "uploads/" . $img_db;
+                                    }
+
+                                    $subtotal = ($item['precio'] ?? 0) * ($item['cantidad'] ?? 1);
+                                ?>
                                     <tr>
-                                        <th>Prenda</th>
-                                        <th>Talla</th>
-                                        <th>Precio</th>
-                                        <th>Cantidad</th>
-                                        <th>Subtotal</th>
-                                        <th>Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($carrito_productos as $item): ?>
-                                        <?php $foto_item = limpiarRutaCheckout($item['imagen'] ?? ''); ?>
-                                        <tr>
-                                            <td>
-                                                <div class="d-flex align-items-center gap-3">
-                                                    <?php if (!empty($foto_item)): ?>
-                                                        <img src="<?= htmlspecialchars($foto_item) ?>" class="img-carrito" alt="<?= htmlspecialchars($item['nombre_producto']) ?>">
-                                                    <?php else: ?>
-                                                        <div class="img-carrito d-flex align-items-center justify-content-center bg-dark text-muted">
-                                                            <i class="bi bi-image"></i>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                    <div>
-                                                        <h6 class="text-white fw-bold mb-0"><?= htmlspecialchars($item['nombre_producto']) ?></h6>
-                                                        <small class="text-muted-moon">Ref: <?= $item['id_producto'] ?></small>
-                                                    </div>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <?php if (!empty($ruta_img)): ?>
+                                                    <img src="<?= htmlspecialchars($ruta_img) ?>" alt="Imagen" class="img-carrito">
+                                                <?php else: ?>
+                                                    <div class="img-carrito bg-dark d-flex align-items-center justify-content-center text-muted small">Sin img</div>
+                                                <?php endif; ?>
+                                                <div>
+                                                    <div class="fw-bold text-white fs-5"><?= htmlspecialchars($nombre_prod) ?></div>
+                                                    <span class="text-muted-moon fs-6">Ref: <?= htmlspecialchars($item['id_producto'] ?? $item['id'] ?? '12') ?></span>
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-secondary px-2 py-1"><?= htmlspecialchars($item['talla']) ?></span>
-                                            </td>
-                                            <td>$<?= number_format($item['precio'], 0, ',', '.') ?></td>
-                                            <td>
-                                                <input type="number" name="cantidades[<?= $item['clave_carrito'] ?>]" value="<?= $item['cantidad'] ?>" min="1" max="99" class="form-control form-control-cantidad">
-                                            </td>
-                                            <td class="fw-bold text-success">$<?= number_format($item['subtotal'], 0, ',', '.') ?></td>
-                                            <td>
-                                                <a href="eliminar_carrito.php?clave=<?= urlencode($item['clave_carrito']) ?>" class="btn btn-sm btn-outline-danger" title="Eliminar">
-                                                    <i class="bi bi-trash"></i>
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-3 text-end">
-                            <button type="submit" name="actualizar_cantidades" class="btn btn-outline-moon btn-sm">
-                                <i class="bi bi-arrow-clockwise me-1"></i> Actualizar Cantidades
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-4">
-                    <div class="card card-cart p-4">
-                        <h5 class="text-white mb-3">Resumen del Pedido</h5>
-                        <div class="d-flex justify-content-between text-muted-moon mb-2">
-                            <span>Artículos totales</span>
-                            <span><?= $cantidad_total_articulos ?></span>
-                        </div>
-                        <div class="d-flex justify-content-between text-muted-moon mb-2">
-                            <span>Subtotal</span>
-                            <span>$<?= number_format($total_general, 0, ',', '.') ?></span>
-                        </div>
-                        <div class="d-flex justify-content-between text-muted-moon mb-3">
-                            <span>Envío</span>
-                            <span>Gratis</span>
-                        </div>
-                        <hr class="border-secondary">
-                        <div class="d-flex justify-content-between text-white fw-bold fs-5 mb-4">
-                            <span>Total</span>
-                            <span class="text-success">$<?= number_format($total_general, 0, ',', '.') ?></span>
-                        </div>
-                        <a href="finalizar_compra.php" class="btn btn-moon w-100 py-2">Proceder al Pago</a>
+                                            </div>
+                                        </td>
+                                        <td class="text-center"><span class="badge badge-talla"><?= htmlspecialchars($item['talla'] ?? 'M') ?></span></td>
+                                        <td class="text-center precio-texto">$<?= number_format($item['precio'] ?? 0, 0, ',', '.') ?></td>
+                                        <td class="text-center fw-bold fs-5"><?= $item['cantidad'] ?? 1 ?></td>
+                                        <td class="text-center subtotal-texto">$<?= number_format($subtotal, 0, ',', '.') ?></td>
+                                        <td class="text-center">
+                                            <a href="checkout.php?eliminar=<?= $idx ?>" class="btn btn-outline-danger btn-sm p-2 px-3" title="Eliminar del carrito">
+                                                <i class="bi bi-trash fs-5"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-        </form>
+
+            <!-- Resumen del Pedido -->
+            <div class="col-lg-4">
+                <div class="card card-product p-4 shadow-sm">
+                    <h4 class="brand-text fw-bold mb-4">Resumen del Pedido</h4>
+                    
+                    <div class="d-flex justify-content-between mb-3 fs-5">
+                        <span class="text-muted-moon">Artículos totales</span>
+                        <span class="fw-bold text-white"><?= $total_articulos ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 fs-5">
+                        <span class="text-muted-moon">Subtotal</span>
+                        <span class="fw-bold text-white">$<?= number_format($subtotal_general, 0, ',', '.') ?></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 fs-5">
+                        <span class="text-muted-moon">Envío</span>
+                        <span class="text-success fw-bold">Gratis</span>
+                    </div>
+                    
+                    <hr class="border-secondary my-4">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="fw-bold fs-4 text-white">Total</span>
+                        <span class="fs-3 fw-bold text-success">$<?= number_format($subtotal_general, 0, ',', '.') ?></span>
+                    </div>
+                    
+                    <a href="procesar_pago.php" class="btn btn-moon w-100 py-3 fs-5 fw-bold shadow">
+                        Proceder al Pago <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Frase de Agradecimiento -->
+        <div class="agradecimiento-box">
+            <p class="agradecimiento-texto mb-1">
+                <i class="bi bi-stars me-2"></i>¡Gracias por elegir Moon Essence! Cada prenda está diseñada para resaltar tu estilo único.<i class="bi bi-stars ms-2"></i>
+            </p>
+            <small class="text-muted-moon">Tus compras son procesadas de forma segura.</small>
+        </div>
+
     <?php endif; ?>
 </div>
 
-<footer class="py-4">
-    <div class="container text-center">
-        <p class="brand-text fw-bold mb-1 fs-5">Moon Essence</p>
-        <p class="small m-0">© 2026 Todos los derechos reservados.</p>
-    </div>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

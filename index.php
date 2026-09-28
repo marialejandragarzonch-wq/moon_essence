@@ -12,13 +12,30 @@ try {
     die("Error de conexión a la base de datos.");
 }
 
-// Obtener productos
+// Capturar la categoría seleccionada por la URL de forma limpia
+$cat_seleccionada = $_GET['cat'] ?? 'todas';
+$cat_limpia = trim(strtolower($cat_seleccionada));
+
+// Obtener todos los productos de la base de datos con su categoría
 $productos = [];
 try {
-    $stmt = $pdo->query("SELECT * FROM productos ORDER BY id_producto DESC");
-    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->query("SELECT p.*, c.nombre_categoria FROM productos p INNER JOIN categorias c ON p.id_categoria = c.id_categoria ORDER BY p.id_producto DESC");
+    $productos_totales = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
+    $productos_totales = [];
+}
+
+// Filtrar los productos en PHP según el botón que se presionó
+if ($cat_limpia === 'todas' || empty($cat_limpia)) {
+    $productos = $productos_totales;
+} else {
     $productos = [];
+    foreach ($productos_totales as $prod) {
+        $nombre_cat_db = trim(strtolower($prod['nombre_categoria'] ?? ''));
+        if ($nombre_cat_db === $cat_limpia) {
+            $productos[] = $prod;
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -117,7 +134,19 @@ try {
 <div class="hero-section">
     <div class="container">
         <h1 class="display-5 brand-text fw-bold mb-3">Define Tu Estilo</h1>
-        <p class="text-muted-moon lead">Explora colecciones exclusivas de calzado y prendas para ti.</p>
+        <p class="text-muted-moon lead">Explora colecciones exclusivas diseñadas para realzar tu elegancia.</p>
+    </div>
+</div>
+
+<!-- Menú de Categorías -->
+<div class="container mt-4">
+    <div class="d-flex flex-wrap gap-2 justify-content-center">
+        <a href="index.php?cat=todas" class="btn btn-sm <?= ($cat_limpia === 'todas') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Todas</a>
+        <a href="index.php?cat=chaquetas" class="btn btn-sm <?= ($cat_limpia === 'chaquetas') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Chaquetas</a>
+        <a href="index.php?cat=faldas" class="btn btn-sm <?= ($cat_limpia === 'faldas') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Faldas</a>
+        <a href="index.php?cat=básicos" class="btn btn-sm <?= ($cat_limpia === 'básicos' || $cat_limpia === 'basicos') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Básicos</a>
+        <a href="index.php?cat=sastre" class="btn btn-sm <?= ($cat_limpia === 'sastre') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Sastre</a>
+        <a href="index.php?cat=calzado" class="btn btn-sm <?= ($cat_limpia === 'calzado') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Calzado</a>
     </div>
 </div>
 
@@ -131,44 +160,108 @@ try {
     <?php if (empty($productos)): ?>
         <div class="text-center py-5">
             <i class="bi bi-shop fs-1 text-muted-moon"></i>
-            <p class="text-muted-moon mt-3">No hay productos disponibles por el momento.</p>
+            <p class="text-muted-moon mt-3">No hay productos en esta categoría por el momento.</p>
         </div>
     <?php else: ?>
         <div class="row g-4">
-            <?php foreach ($productos as $prod): ?>
+            <?php foreach ($productos as $index_prod => $prod): ?>
                 <div class="col-md-4 col-lg-3">
                     <div class="card card-producto h-100 shadow-sm">
-                        <?php if (!empty($prod['imagen'])): ?>
-                            <img src="uploads/<?= htmlspecialchars($prod['imagen']) ?>" alt="Prenda" class="img-catalogo">
+                        <?>
+                        <?php 
+                            $img_db = trim($prod['imagen'] ?? '');
+                            $primera_imagen = "";
+                            $segunda_imagen = "";
+
+                            // Replicando la lógica de búsqueda robusta por prefijo numérico de la base de datos
+                            preg_match('/^(\d+)/', $img_db, $matches);
+                            if (!empty($matches[1])) {
+                                $prefijo = $matches[1];
+                                $archivos = scandir('uploads');
+                                foreach ($archivos as $archivo) {
+                                    if ($archivo === '.' || $archivo === '..') continue;
+                                    if (strpos($archivo, $prefijo) === 0) {
+                                        if (strpos($archivo, '_1') !== false || (strpos($archivo, '_2') === false && empty($primera_imagen))) {
+                                            if (empty($primera_imagen)) {
+                                                $primera_imagen = "uploads/" . $archivo;
+                                            }
+                                        }
+                                        if (strpos($archivo, '_2') !== false || strpos($archivo, ' 2') !== false) {
+                                            $segunda_imagen = "uploads/" . $archivo;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Fallbacks por si acaso
+                            if (empty($primera_imagen) && !empty($img_db) && file_exists("uploads/" . $img_db)) {
+                                $primera_imagen = "uploads/" . $img_db;
+                            }
+                            
+                            $carousel_id = "carouselProd" . $index_prod;
+                        ?>
+
+                        <!-- Carrusel Bootstrap para alternar entre la foto 1 y la foto 2 de forma fluida -->
+                        <?php if (!empty($primera_imagen) && !empty($segunda_imagen)): ?>
+                            <div id="<?= $carousel_id ?>" class="carousel slide" data-bs-ride="carousel">
+                                <div class="carousel-inner">
+                                    <div class="carousel-item active">
+                                        <img src="<?= htmlspecialchars($primera_imagen) ?>" class="img-catalogo" alt="Foto 1">
+                                    </div>
+                                    <div class="carousel-item">
+                                        <img src="<?= htmlspecialchars($segunda_imagen) ?>" class="img-catalogo" alt="Foto 2">
+                                    </div>
+                                </div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#<?= $carousel_id ?>" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Anterior</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#<?= $carousel_id ?>" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Siguiente</span>
+                                </button>
+                            </div>
+                        <?php elseif (!empty($primera_imagen)): ?>
+                            <img src="<?= htmlspecialchars($primera_imagen) ?>" alt="Prenda" class="img-catalogo">
                         <?php else: ?>
                             <div class="img-catalogo bg-dark d-flex align-items-center justify-content-center text-muted-moon">Sin imagen</div>
                         <?php endif; ?>
                         
                         <div class="card-body d-flex flex-column">
-                            <span class="text-muted-moon small mb-1">MOON STORE OFICIAL</span>
+                            <span class="text-muted-moon small mb-1"><?= htmlspecialchars($prod['nombre_categoria'] ?? 'MOON STORE') ?></span>
                             <h5 class="card-title fw-bold text-white mb-2"><?= htmlspecialchars($prod['nombre_producto'] ?? '') ?></h5>
                             <p class="text-success fw-bold fs-5 mb-2">$<?= number_format($prod['precio'] ?? 0, 2, ',', '.') ?></p>
                             
                             <?php 
                                 $nombreProd = strtolower($prod['nombre_producto'] ?? '');
-                                $esCalzado = (strpos($nombreProd, 'tenis') !== false || strpos($nombreProd, 'bota') !== false || strpos($nombreProd, 'zapatilla') !== false || strpos($nombreProd, 'mary jane') !== false);
+                                $nombreCat = strtolower($prod['nombre_categoria'] ?? '');
+                                $esCalzado = (strpos($nombreCat, 'calzado') !== false || strpos($nombreProd, 'tenis') !== false || strpos($nombreProd, 'bota') !== false || strpos($nombreProd, 'zapatilla') !== false || strpos($nombreProd, 'zapato') !== false);
                             ?>
 
-                            <!-- Visualización limpia de la talla en la tarjeta (sin selectores) -->
-                            <div class="mb-3">
-                                <span class="text-muted-moon small">Talla:</span>
-                                <span class="badge bg-secondary text-white ms-1 px-2 py-1">
-                                    <?= $esCalzado ? '35 - 41' : 'XS - XXL' ?>
-                                </span>
-                            </div>
-
-                            <!-- Botón de compra directo -->
+                            <!-- Selector de Tallas Desplegable -->
                             <form action="carrito/agregar.php" method="POST" class="mt-auto">
                                 <input type="hidden" name="id_producto" value="<?= $prod['id_producto'] ?>">
-                                <input type="hidden" name="talla" value="<?= $esCalzado ? '36' : 'M' ?>">
+                                
+                                <div class="mb-3">
+                                    <label class="text-muted-moon small mb-1">Selecciona la Talla:</label>
+                                    <select name="talla" class="form-select form-select-sm bg-dark text-white border-secondary" required>
+                                        <option value="" selected disabled>Elige una talla</option>
+                                        <?php 
+                                            if ($esCalzado) {
+                                                $tallas = ['35', '36', '37', '38', '39', '40', '41'];
+                                            } else {
+                                                $tallas = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+                                            }
+                                            
+                                            foreach ($tallas as $t) {
+                                                echo "<option value=\"$t\">Talla $t</option>";
+                                            }
+                                        ?>
+                                    </select>
+                                </div>
                                 
                                 <button type="submit" class="btn btn-beigecito w-100 btn-sm py-2">
-                                    <i class="bi bi-cart-plus me-1"></i> Comprar / Agregar
+                                    <i class="bi bi-cart-plus me-1"></i> Agregar al Carrito
                                 </button>
                             </form>
                         </div>

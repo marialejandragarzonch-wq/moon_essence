@@ -1,101 +1,65 @@
-:root {
-    --bg-cielo: #0b131e;
-    --bg-tarjeta: #1a2332;
-    --accent-luna: #f9e8d0;
-    --texto-suave: #aebbc9;
-}
-
-html, body, .moon-bg {
-    background-color: var(--bg-cielo) !important;
+/* --- Ajustes de tamaño y colores para el Carrito --- */
+.table-moon {
     color: #ffffff !important;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    min-height: 100vh;
+    vertical-align: middle;
+    font-size: 1.1rem;
 }
 
-.navbar-moon {
-    background-color: #05090e !important;
-    border-bottom: 1px solid #233044;
-}
-
-.brand-text {
-    color: var(--accent-luna) !important;
-    letter-spacing: 1px;
-}
-
-.card-product {
-    background-color: var(--bg-tarjeta) !important;
-    border: 1px solid #28374d !important;
-    border-radius: 12px;
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card-product:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(249, 232, 208, 0.08);
-}
-
-.card-img-container {
-    height: 380px;
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-}
-
-.card-img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.card-img-container .img-principal {
-    position: relative;
-    z-index: 1;
-}
-
-.card-img-container .img-secundaria {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 2;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-}
-
-.card-img-container:hover .img-secundaria {
-    opacity: 1;
-}
-
-.price-tag {
-    color: var(--accent-luna) !important;
-}
-
-.btn-moon {
-    background-color: var(--accent-luna) !important;
-    color: #0b131e !important;
+.table-moon th {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border-bottom: 2px solid #384a66;
     font-weight: 600;
-    border: none;
-    transition: all 0.2s ease;
+    padding: 18px 14px;
+    font-size: 1.15rem;
 }
 
-.btn-moon:hover {
-    background-color: #ffffff !important;
-    color: #0b131e !important;
-    box-shadow: 0 0 12px rgba(249, 232, 208, 0.4);
+.table-moon td {
+    background-color: transparent !important;
+    border-bottom: 1px solid #28374d;
+    padding: 20px 14px;
+    color: #ffffff !important;
 }
 
-.btn-outline-moon {
-    border: 1px solid var(--accent-luna) !important;
-    color: var(--accent-luna) !important;
-    background: transparent;
+.img-carrito {
+    width: 85px;
+    height: 105px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #384a66;
 }
 
-.btn-outline-moon:hover {
-    background-color: var(--accent-luna) !important;
-    color: #0b131e !important;
+.badge-talla {
+    font-size: 1rem;
+    padding: 6px 14px;
+    background-color: #2a3a52 !important;
+    color: #ffffff;
+    border: 1px solid #485c7b;
 }
 
-.text-muted-moon {
-    color: var(--texto-suave) !important;
+.precio-texto {
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.subtotal-texto {
+    color: #2ecc71 !important;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+/* --- Frase de agradecimiento --- */
+.agradecimiento-box {
+    border-top: 1px dashed #28374d;
+    margin-top: 40px;
+    padding-top: 25px;
+    text-align: center;
+}
+
+.agradecimiento-texto {
+    color: var(--accent-luna);
+    font-style: italic;
+    font-size: 1.15rem;
+    letter-spacing: 0.5px;
 }

@@ -9,108 +9,28 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Error de conexión: " . $e->getMessage());
+    die("Error de conexión a la base de datos.");
 }
 
-// Si el carrito está vacío, regresar al inicio
-if (!isset($_SESSION['carrito']) || empty($_SESSION['carrito'])) {
-    header("Location: index.php");
-    exit();
+$carrito = $_SESSION['carrito'] ?? [];
+
+// Si el carrito está vacío, regresar al carrito
+if (empty($carrito)) {
+    header("Location: carrito/ver.php");
+    exit;
 }
 
-$error = "";
+$subtotal_general = 0;
+foreach ($carrito as $item) {
+    $subtotal_general += ($item['precio'] ?? 0) * ($item['cantidad'] ?? 1);
+}
 
-// Procesar el formulario cuando el usuario confirma la compra
+// Procesar pedido al presionar el botón
+$mensaje_exito = "";
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $nombre_cliente = trim($_POST['nombre_cliente'] ?? '');
-    $telefono = trim($_POST['telefono'] ?? '');
-    $direccion = trim($_POST['direccion'] ?? '');
-    $ciudad = trim($_POST['ciudad'] ?? '');
-    $notas = trim($_POST['notas'] ?? '');
-    $metodo_pago = $_POST['metodo_pago'] ?? 'Contra Entrega';
-
-    if (empty($nombre_cliente) || empty($telefono) || empty($direccion) || empty($ciudad)) {
-        $error = "Por favor, completa todos los campos obligatorios de envío.";
-    } else {
-        // Calcular total general
-        $total_general = 0;
-        foreach ($_SESSION['carrito'] as $item) {
-            $stmt = $pdo->prepare("SELECT precio FROM productos WHERE id_producto = ?");
-            $stmt->execute([$item['id_producto']]);
-            $prod = $stmt->fetch(PDO::FETCH_ASSOC);
-            if ($prod) {
-                $total_general += $prod['precio'] * $item['cantidad'];
-            }
-        }
-
-        try {
-            $pdo->beginTransaction();
-
-            // 1. Insertar el pedido principal
-            $sql_pedido = "INSERT INTO pedidos (nombre_cliente, telefono, direccion, ciudad, notas, total, metodo_pago, estado_pedido, fecha_pedido) VALUES (?, ?, ?, ?, ?, ?, ?, 'pendiente', NOW())";
-            $stmt_ped = $pdo->prepare($sql_pedido);
-            $stmt_ped->execute([$nombre_cliente, $telefono, $direccion, $ciudad, $notas, $total_general, $metodo_pago]);
-            $id_pedido_nuevo = $pdo->lastInsertId();
-
-            // 2. Insertar los detalles de los productos en detalle_pedidos (si existe la tabla)
-            foreach ($_SESSION['carrito'] as $item) {
-                $stmt_p = $pdo->prepare("SELECT precio FROM productos WHERE id_producto = ?");
-                $stmt_p->execute([$item['id_producto']]);
-                $p_info = $stmt_p->fetch(PDO::FETCH_ASSOC);
-                $precio_unitario = $p_info ? $p_info['precio'] : 0;
-
-                try {
-                    $sql_det = "INSERT INTO detalle_pedidos (id_pedido, id_producto, cantidad, precio_unitario, talla) VALUES (?, ?, ?, ?, ?)";
-                    $stmt_det = $pdo->prepare($sql_det);
-                    $stmt_det->execute([$id_pedido_nuevo, $item['id_producto'], $item['cantidad'], $precio_unitario, $item['talla']]);
-                } catch (Exception $exDetalle) {
-                    // Evita romper la compra si hay diferencias menores en columnas
-                }
-            }
-
-            $pdo->commit();
-
-            // Vaciar el carrito y guardar ID para la página de éxito
-            unset($_SESSION['carrito']);
-            $_SESSION['pedido_exitoso'] = $id_pedido_nuevo;
-
-            header("Location: exito.php");
-            exit();
-
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $error = "Hubo un error al procesar tu pedido: " . $e->getMessage();
-        }
-    }
-}
-
-// Cargar datos para el resumen visual
-$carrito_productos = [];
-$total_general = 0;
-$cantidad_total_articulos = 0;
-
-foreach ($_SESSION['carrito'] as $clave => $item) {
-    $stmt = $pdo->prepare("SELECT * FROM productos WHERE id_producto = ?");
-    $stmt->execute([$item['id_producto']]);
-    $prod = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($prod) {
-        $prod['talla'] = $item['talla'];
-        $prod['cantidad'] = $item['cantidad'];
-        $prod['subtotal'] = $prod['precio'] * $item['cantidad'];
-        $total_general += $prod['subtotal'];
-        $cantidad_total_articulos += $item['cantidad'];
-        $carrito_productos[] = $prod;
-    }
-}
-
-function limpiarRutaCheckout($img) {
-    $img = trim($img ?? '');
-    if (empty($img)) return '';
-    if (strpos($img, 'uploads/') === 0 || strpos($img, 'http') === 0) {
-        return $img;
-    }
-    return 'uploads/' . $img;
+    // Vaciar el carrito tras finalizar la compra
+    $_SESSION['carrito'] = [];
+    $mensaje_exito = "¡Tu pedido ha sido realizado con éxito!";
 }
 ?>
 <!DOCTYPE html>
@@ -128,66 +48,100 @@ function limpiarRutaCheckout($img) {
             --accent-luna: #f9e8d0;
             --texto-suave: #aebbc9;
         }
-        body {
-            background-color: var(--bg-cielo);
-            color: #ffffff;
+
+        html, body, .moon-bg {
+            background-color: var(--bg-cielo) !important;
+            color: #ffffff !important;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
+
         .navbar-moon {
-            background-color: rgba(5, 9, 14, 0.95);
+            background-color: #05090e !important;
             border-bottom: 1px solid #233044;
-            backdrop-filter: blur(8px);
         }
+
         .brand-text {
             color: var(--accent-luna) !important;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
+            text-decoration: none;
         }
-        .card-cart {
-            background-color: var(--bg-tarjeta);
-            border: 1px solid #28374d;
-            border-radius: 14px;
+
+        .card-product {
+            background-color: var(--bg-tarjeta) !important;
+            border: 1px solid #28374d !important;
+            border-radius: 12px;
+            overflow: hidden;
         }
-        .form-control-moon, .form-select-moon {
-            background-color: #121a24 !important;
+
+        .form-control, .form-select {
+            background-color: #111a28 !important;
             border: 1px solid #28374d !important;
             color: #ffffff !important;
+            padding: 12px 15px;
             border-radius: 8px;
-            padding: 10px 14px;
         }
-        .form-control-moon:focus, .form-select-moon:focus {
+
+        .form-control:focus, .form-select:focus {
             border-color: var(--accent-luna) !important;
             box-shadow: 0 0 8px rgba(249, 232, 208, 0.2);
         }
+
+        .form-control::placeholder {
+            color: #5d708a !important;
+        }
+
         .btn-moon {
-            background-color: var(--accent-luna);
-            color: #0b131e;
-            font-weight: 600;
+            background-color: var(--accent-luna) !important;
+            color: #0b131e !important;
+            font-weight: 700;
             border: none;
-            border-radius: 8px;
             transition: all 0.2s ease;
         }
+
         .btn-moon:hover {
-            background-color: #ffffff;
+            background-color: #ffffff !important;
+            color: #0b131e !important;
             box-shadow: 0 0 12px rgba(249, 232, 208, 0.4);
         }
-        .img-miniatura {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 1px solid #28374d;
+
+        .btn-outline-moon {
+            border: 1px solid var(--accent-luna) !important;
+            color: var(--accent-luna) !important;
+            background: transparent;
         }
+
+        .btn-outline-moon:hover {
+            background-color: var(--accent-luna) !important;
+            color: #0b131e !important;
+        }
+
         .text-muted-moon {
             color: var(--texto-suave) !important;
         }
-        footer {
-            background-color: #05090e;
-            border-top: 1px solid #233044;
-            color: var(--texto-suave);
-            margin-top: auto;
+
+        .badge-talla {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            background-color: #2a3a52 !important;
+            color: #ffffff;
+            border: 1px solid #485c7b;
+            text-transform: uppercase;
+            border-radius: 4px;
+        }
+
+        .agradecimiento-box {
+            border-top: 1px dashed #28374d;
+            margin-top: 40px;
+            padding-top: 25px;
+            text-align: center;
+        }
+
+        .agradecimiento-texto {
+            color: var(--accent-luna);
+            font-style: italic;
+            font-size: 1.15rem;
+            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -198,120 +152,125 @@ function limpiarRutaCheckout($img) {
         <a class="navbar-brand fw-bold fs-3 brand-text" href="index.php">
             <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence
         </a>
-        <div class="d-flex align-items-center gap-2">
-            <a href="checkout.php" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i> Volver al Carrito</a>
+        <div class="d-flex align-items-center">
+            <a href="carrito/ver.php" class="btn btn-outline-moon btn-sm px-3">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Carrito
+            </a>
         </div>
     </div>
 </nav>
 
-<div class="container my-5">
-    <h2 class="brand-text mb-4"><i class="bi bi-truck me-2"></i>Detalles de Envío y Pago</h2>
+<div class="container my-5" style="max-width: 1100px;">
 
-    <?php if (!empty($error)): ?>
-        <div class="alert alert-danger bg-danger text-white border-0 mb-4">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i><?= $error ?>
+    <?php if (!empty($mensaje_exito)): ?>
+        <div class="card card-product p-5 text-center my-4">
+            <i class="bi bi-check-circle-fill fs-1 text-success mb-3"></i>
+            <h2 class="brand-text fw-bold mb-3"><?= $mensaje_exito ?></h2>
+            <p class="text-muted-moon fs-5">Hemos procesado tu pedido correctamente.</p>
+            <div class="mt-4">
+                <a href="index.php" class="btn btn-moon btn-lg px-4">Volver al Inicio</a>
+            </div>
         </div>
-    <?php endif; ?>
+    <?php else: ?>
 
-    <form action="finalizar_compra.php" method="POST">
-        <div class="row g-4">
-            <!-- Columna Izquierda: Formulario de Dirección -->
-            <div class="col-lg-7">
-                <div class="card card-cart p-4">
-                    <h4 class="text-white mb-3">Información de Destino</h4>
-                    
-                    <div class="mb-3">
-                        <label class="form-label text-muted-moon">Nombre Completo *</label>
-                        <input type="text" name="nombre_cliente" class="form-control form-control-moon" required placeholder="Ej. Valentina Gómez">
-                    </div>
+        <div class="text-center mb-5">
+            <h2 class="brand-text fw-bold fs-1">Finalizar Compra</h2>
+            <p class="text-muted-moon fs-5">Completa tus datos para el envío de tus prendas</p>
+        </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted-moon">Teléfono / Celular *</label>
-                            <input type="text" name="telefono" class="form-control form-control-moon" required placeholder="Ej. 3001234567">
+        <form method="POST" action="">
+            <div class="row g-4">
+                <!-- Datos de Envío -->
+                <div class="col-lg-7">
+                    <div class="card card-product p-4 shadow-sm">
+                        <h4 class="text-white fw-bold mb-4">
+                            <i class="bi bi-geo-alt me-2 brand-text"></i>Datos de Envío
+                        </h4>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-white fw-medium">Nombre completo</label>
+                                <input type="text" class="form-control" name="nombre" placeholder="Ej. Ana María" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white fw-medium">Correo Electrónico</label>
+                                <input type="email" class="form-control" name="email" placeholder="tu@email.com" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white fw-medium">Teléfono</label>
+                                <input type="text" class="form-control" name="telefono" placeholder="300 000 0000" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white fw-medium">Ciudad</label>
+                                <input type="text" class="form-control" name="ciudad" placeholder="Bogotá, Medellín, etc." required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-white fw-medium">Dirección exacta de entrega</label>
+                                <input type="text" class="form-control" name="direccion" placeholder="Carrera 15 # 45 - 20 Apto 301" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-white fw-medium">Método de Pago</label>
+                                <select class="form-select" name="metodo_pago" required>
+                                    <option value="contraentrega">Pago Contra Entrega (Efectivo)</option>
+                                    <option value="transferencia">Transferencia Bancaria / Nequi</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label text-muted-moon">Ciudad *</label>
-                            <input type="text" name="ciudad" class="form-control form-control-moon" required placeholder="Ej. Bogotá">
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted-moon">Dirección Exacta *</label>
-                        <input type="text" name="direccion" class="form-control form-control-moon" required placeholder="Ej. Calle 100 # 15-20, Apto 402">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted-moon">Notas o Indicaciones (Opcional)</label>
-                        <textarea name="notas" class="form-control form-control-moon" rows="2" placeholder="Ej. Tocar el timbre o dejar en portería"></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label text-muted-moon">Método de Pago</label>
-                        <select name="metodo_pago" class="form-select form-select-moon">
-                            <option value="Contra Entrega">Pago Contra Entrega</option>
-                            <option value="Nequi / Daviplata">Transferencia (Nequi / Daviplata)</option>
-                            <option value="Tarjeta de Crédito">Tarjeta de Crédito / Débito</option>
-                        </select>
                     </div>
                 </div>
-            </div>
 
-            <!-- Columna Derecha: Resumen Rápido -->
-            <div class="col-lg-5">
-                <div class="card card-cart p-4">
-                    <h4 class="text-white mb-3">Resumen del Pedido (<?= $cantidad_total_articulos ?> prendas)</h4>
-                    
-                    <div class="d-flex flex-column gap-3 mb-3" style="max-height: 250px; overflow-y: auto;">
-                        <?php foreach ($carrito_productos as $item): ?>
-                            <?php $img_fin = limpiarRutaCheckout($item['imagen'] ?? ''); ?>
-                            <div class="d-flex align-items-center justify-content-between border-bottom border-secondary pb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <?php if (!empty($img_fin)): ?>
-                                        <img src="<?= htmlspecialchars($img_fin) ?>" class="img-miniatura" alt="">
-                                    <?php else: ?>
-                                        <div class="img-miniatura bg-dark d-flex align-items-center justify-content-center text-muted"><i class="bi bi-image"></i></div>
-                                    <?php endif; ?>
+                <!-- Resumen Final -->
+                <div class="col-lg-5">
+                    <div class="card card-product p-4 shadow-sm">
+                        <h4 class="text-white fw-bold mb-4">
+                            <i class="bi bi-receipt me-2 brand-text"></i>Resumen Final
+                        </h4>
+
+                        <div class="pe-1 mb-3" style="max-height: 280px; overflow-y: auto;">
+                            <?php foreach ($carrito as $item): 
+                                $nombre_p = $item['nombre_producto'] ?? $item['nombre'] ?? 'Prenda';
+                                $sub = ($item['precio'] ?? 0) * ($item['cantidad'] ?? 1);
+                            ?>
+                                <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom border-secondary">
                                     <div>
-                                        <h6 class="text-white mb-0 fs-6"><?= htmlspecialchars($item['nombre_producto']) ?></h6>
-                                        <small class="text-muted-moon">Talla: <?= $item['talla'] ?> | Cant: <?= $item['cantidad'] ?></small>
+                                        <div class="fw-bold text-white fs-6"><?= htmlspecialchars($nombre_p) ?></div>
+                                        <small class="text-muted-moon">
+                                            Talla: <span class="badge badge-talla"><?= htmlspecialchars($item['talla'] ?? 'S') ?></span>
+                                            | Cant: <?= $item['cantidad'] ?? 1 ?>
+                                        </small>
+                                    </div>
+                                    <div class="text-success fw-bold fs-6">
+                                        $<?= number_format($sub, 0, ',', '.') ?>
                                     </div>
                                 </div>
-                                <span class="text-success fw-bold">$<?= number_format($item['subtotal'], 0, ',', '.') ?></span>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
+                            <?php endforeach; ?>
+                        </div>
 
-                    <div class="d-flex justify-content-between text-muted-moon mb-2">
-                        <span>Subtotal</span>
-                        <span>$<?= number_format($total_general, 0, ',', '.') ?></span>
-                    </div>
-                    <div class="d-flex justify-content-between text-muted-moon mb-3">
-                        <span>Envío Estelar</span>
-                        <span class="text-success fw-semibold">Gratis</span>
-                    </div>
-                    <hr class="border-secondary">
-                    <div class="d-flex justify-content-between text-white fw-bold fs-5 mb-4">
-                        <span>Total a Pagar</span>
-                        <span class="text-success">$<?= number_format($total_general, 0, ',', '.') ?></span>
-                    </div>
+                        <hr class="border-secondary my-3">
 
-                    <button type="submit" class="btn btn-moon w-100 py-3 fw-bold fs-5">
-                        <i class="bi bi-check-circle-fill me-2"></i> Confirmar y Realizar Pedido
-                    </button>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <span class="fw-bold fs-4 text-white">Total a Pagar:</span>
+                            <span class="fs-3 fw-bold text-success">$<?= number_format($subtotal_general, 0, ',', '.') ?></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-moon w-100 py-3 fs-5 fw-bold shadow">
+                            <i class="bi bi-check-circle-fill me-2"></i>Confirmar y Realizar Pedido
+                        </button>
+                    </div>
                 </div>
             </div>
+        </form>
+
+        <!-- Frase de Agradecimiento -->
+        <div class="agradecimiento-box">
+            <p class="agradecimiento-texto mb-1">
+                <i class="bi bi-stars me-2"></i>¡Gracias por elegir Moon Essence! Cada prenda está diseñada para resaltar tu estilo único.<i class="bi bi-stars ms-2"></i>
+            </p>
+            <small class="text-muted-moon">Tus compras son procesadas de forma segura.</small>
         </div>
-    </form>
+
+    <?php endif; ?>
 </div>
 
-<footer class="py-4 mt-auto">
-    <div class="container text-center">
-        <p class="brand-text fw-bold mb-1 fs-5">Moon Essence</p>
-        <p class="small m-0">© 2026 Todos los derechos reservados.</p>
-    </div>
-</footer>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
