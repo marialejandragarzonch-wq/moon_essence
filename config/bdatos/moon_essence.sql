@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 28-09-2026 a las 18:14:13
+-- Tiempo de generación: 30-09-2026 a las 17:51:34
 -- Versión del servidor: 10.1.38-MariaDB
 -- Versión de PHP: 7.1.27
 
@@ -153,6 +153,7 @@ CREATE TABLE `productos` (
   `precio` decimal(10,2) NOT NULL,
   `stock` int(11) NOT NULL DEFAULT '0',
   `imagen` varchar(255) DEFAULT 'default.png',
+  `imagen_secundaria` varchar(255) DEFAULT NULL,
   `estado_aprobacion` enum('pendiente','aprobado','rechazado') DEFAULT 'pendiente',
   `fecha_creacion` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `aprobado` tinyint(1) DEFAULT '1'
@@ -162,23 +163,23 @@ CREATE TABLE `productos` (
 -- Volcado de datos para la tabla `productos`
 --
 
-INSERT INTO `productos` (`id_producto`, `id_tienda`, `id_categoria`, `nombre_producto`, `descripcion`, `precio`, `stock`, `imagen`, `estado_aprobacion`, `fecha_creacion`, `aprobado`) VALUES
-(4, 1, 1, 'Chaqueta oversize Denim', 'Chaqueta de mezclilla holgada con botones y bolsillos.', '95000.00', 8, '1787580151_1_Chaqueta de jean Oversize.png', 'pendiente', '2026-08-24 14:02:31', 1),
-(5, 1, 3, 'Camiseta Básica Beige', 'Camiseta de algodón manga corta y cuello redondo.', '30000.00', 20, '1787581126_1_Camiseta beige .png', 'pendiente', '2026-08-24 14:18:46', 1),
-(7, 1, 2, 'Falda Azul De Volantes', 'Minifalda con cintura elástica y diseño en capas.', '45000.00', 12, '1787584584_1_Falda corta azul .png', 'pendiente', '2026-08-24 15:16:24', 1),
-(8, 1, 2, 'Falda Asimétrica Cuadros', 'Falda midi de cuadros con diseño moderno.', '65000.00', 11, '1787584696_1_Falda larga .png', 'pendiente', '2026-08-24 15:18:16', 1),
-(9, 1, 4, 'Pantalón Sastre Morado', 'Pantalón elegante de talle alto y pierna ancha.', '70000.00', 8, '1787584830_1_1787584233_1_Pantalon Morado 1.PNG', 'pendiente', '2026-08-24 15:20:30', 1),
-(10, 1, 3, 'Top Acanalado Café', 'Top básico de algodón acanalado color marrón, cuello redondo y silueta ajustada.', '45000.00', 20, '1788186466_1_Top cafe.png', 'pendiente', '2026-08-31 14:27:46', 1),
-(11, 1, 1, 'Gabardina Beige Larga', 'Gabardina clásica para capas, color beige claro, con doble botonadura y cinturón ajustable. Largo hasta la rodilla.', '125000.00', 35, '1788188984_1_gabardinada 1.PNG', 'pendiente', '2026-08-31 15:09:44', 1),
-(12, 1, 3, 'Jeans Wide Leg De Tiro Alto', 'Pantalón vaquero de corte ancho y silueta estilizada con tiro alto en azul clásico.', '110000.00', 39, '1788189261_1_Pantalon 1.png', 'pendiente', '2026-08-31 15:14:21', 1),
-(13, 1, 1, 'Blazer Oversized Negro', 'Saco sastre de corte amplio y formal con solapas y un botón frontal.', '140000.00', 20, '1788189485_1_Blazer Negro 1.png', 'pendiente', '2026-08-31 15:18:05', 1),
-(14, 1, 4, 'Chaleco Sastre Azul', 'Chaleco sastre entallado de diseño formal con botones frontales y escote en v.', '85000.00', 25, '1788189681_1_Chaleco de sastre 1.png', 'pendiente', '2026-08-31 15:21:21', 1),
-(15, 1, 2, 'Falda Midi Satinada', 'Falda fluida de corte midi en tejido satinado con brillo sutil y elegante.', '90000.00', 19, '1788189999_1_Falda satinada 1.png', 'pendiente', '2026-08-31 15:26:39', 1),
-(16, 1, 3, 'Buzo/Hoodie Oversize', 'Sudadera con capucha de corte amplio y interior afelpado para máximo confort.', '100000.00', 26, '1788190253_1_Buzo 1.png', 'pendiente', '2026-08-31 15:30:53', 1),
-(17, 1, 5, 'Tenis Samba Borgoña', 'Zapatillas estilo retro en tono Vinotinto con franjas blancas y suela de goma.', '160000.00', 20, '1788190461_1_Zapatos 1.png', 'pendiente', '2026-08-31 15:34:21', 1),
-(18, 1, 5, 'Tenis NB 530 White/Silver', 'Zapatillas deportivas estilo chunky en color blanco con detalles metalizados y suela amortiguada.', '180000.00', 16, '1788190787_1_Zpatos NB 1.png', 'pendiente', '2026-08-31 15:39:47', 1),
-(19, 1, 5, 'Mary Jane Vinotinto Doble Correa', 'Zapatos tipo salón de charol en tono Vinotinto con punta cuadrada y doble correa con hebilla.', '115000.00', 24, '1788191232_1_Zapatillas 1.png', 'pendiente', '2026-08-31 15:47:12', 1),
-(20, 1, 5, 'Botas Altas Café Tacón', 'Botas altas de cuero sintético en color marrón oscuro, tacón ancho y cierre lateral interno.', '150000.00', 15, '1788191478_1_Botas 1.png', 'pendiente', '2026-08-31 15:51:18', 1);
+INSERT INTO `productos` (`id_producto`, `id_tienda`, `id_categoria`, `nombre_producto`, `descripcion`, `precio`, `stock`, `imagen`, `imagen_secundaria`, `estado_aprobacion`, `fecha_creacion`, `aprobado`) VALUES
+(4, 1, 1, 'Chaqueta oversize Denim', 'Chaqueta de mezclilla holgada con botones y bolsillos.', '95000.00', 8, '1787580151_1_Chaqueta de jean Oversize.png', NULL, 'pendiente', '2026-08-24 14:02:31', 1),
+(5, 1, 3, 'Camiseta Básica Beige', 'Camiseta de algodón manga corta y cuello redondo.', '30000.00', 20, '1787581126_1_Camiseta beige .png', NULL, 'pendiente', '2026-08-24 14:18:46', 1),
+(7, 1, 2, 'Falda Azul De Volantes', 'Minifalda con cintura elástica y diseño en capas.', '45000.00', 12, '1787584584_1_Falda corta azul .png', NULL, 'pendiente', '2026-08-24 15:16:24', 1),
+(8, 1, 2, 'Falda Asimétrica Cuadros', 'Falda midi de cuadros con diseño moderno.', '65000.00', 11, '1787584696_1_Falda larga .png', NULL, 'pendiente', '2026-08-24 15:18:16', 1),
+(9, 1, 4, 'Pantalón Sastre Morado', 'Pantalón elegante de talle alto y pierna ancha.', '70000.00', 8, '1787584830_1_1787584233_1_Pantalon Morado 1.PNG', NULL, 'pendiente', '2026-08-24 15:20:30', 1),
+(10, 1, 3, 'Top Acanalado Café', 'Top básico de algodón acanalado color marrón, cuello redondo y silueta ajustada.', '45000.00', 20, '1788186466_1_Top cafe.png', NULL, 'pendiente', '2026-08-31 14:27:46', 1),
+(11, 1, 1, 'Gabardina Beige Larga', 'Gabardina clásica para capas, color beige claro, con doble botonadura y cinturón ajustable. Largo hasta la rodilla.', '125000.00', 35, '1788188984_1_gabardinada 1.PNG', NULL, 'pendiente', '2026-08-31 15:09:44', 1),
+(12, 1, 3, 'Jeans Wide Leg De Tiro Alto', 'Pantalón vaquero de corte ancho y silueta estilizada con tiro alto en azul clásico.', '110000.00', 39, '1788189261_1_Pantalon 1.png', NULL, 'pendiente', '2026-08-31 15:14:21', 1),
+(13, 1, 1, 'Blazer Oversized Negro', 'Saco sastre de corte amplio y formal con solapas y un botón frontal.', '140000.00', 20, '1788189485_1_Blazer Negro 1.png', NULL, 'pendiente', '2026-08-31 15:18:05', 1),
+(14, 1, 4, 'Chaleco Sastre Azul', 'Chaleco sastre entallado de diseño formal con botones frontales y escote en v.', '85000.00', 25, '1788189681_1_Chaleco de sastre 1.png', NULL, 'pendiente', '2026-08-31 15:21:21', 1),
+(15, 1, 2, 'Falda Midi Satinada', 'Falda fluida de corte midi en tejido satinado con brillo sutil y elegante.', '90000.00', 19, '1788189999_1_Falda satinada 1.png', NULL, 'pendiente', '2026-08-31 15:26:39', 1),
+(16, 1, 3, 'Buzo/Hoodie Oversize', 'Sudadera con capucha de corte amplio y interior afelpado para máximo confort.', '100000.00', 26, '1788190253_1_Buzo 1.png', NULL, 'pendiente', '2026-08-31 15:30:53', 1),
+(17, 1, 5, 'Tenis Samba Borgoña', 'Zapatillas estilo retro en tono Vinotinto con franjas blancas y suela de goma.', '160000.00', 20, '1788190461_1_Zapatos 1.png', NULL, 'pendiente', '2026-08-31 15:34:21', 1),
+(18, 1, 5, 'Tenis NB 530 White/Silver', 'Zapatillas deportivas estilo chunky en color blanco con detalles metalizados y suela amortiguada.', '180000.00', 16, '1788190787_1_Zpatos NB 1.png', NULL, 'pendiente', '2026-08-31 15:39:47', 1),
+(19, 1, 5, 'Mary Jane Vinotinto Doble Correa', 'Zapatos tipo salón de charol en tono Vinotinto con punta cuadrada y doble correa con hebilla.', '115000.00', 24, '1788191232_1_Zapatillas 1.png', NULL, 'pendiente', '2026-08-31 15:47:12', 1),
+(20, 1, 5, 'Botas Altas Café Tacón', 'Botas altas de cuero sintético en color marrón oscuro, tacón ancho y cierre lateral interno.', '150000.00', 15, '1788191478_1_Botas 1.png', NULL, 'pendiente', '2026-08-31 15:51:18', 1);
 
 -- --------------------------------------------------------
 
