@@ -1,5 +1,6 @@
 <?php
 session_start();
+
 $host = 'localhost';
 $db   = 'moon_essence';
 $user = 'root';
@@ -9,176 +10,261 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Error de conexión a la base de datos.");
+    die("Error de conexión a la base de datos: " . $e->getMessage());
 }
 
-// Obtener productos
-$productos = [];
-try {
-    $stmt = $pdo->query("SELECT * FROM productos ORDER BY id_producto DESC");
-    $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-    $productos = [];
+$mensaje = '';
+$tipo_alerta = '';
+
+// Lógica para ELIMINAR producto
+if (isset($_GET['action']) && $_GET['action'] === 'eliminar' && isset($_GET['id'])) {
+    $id_eliminar = (int)$_GET['id'];
+    if ($id_eliminar > 0) {
+        try {
+            // Obtener nombres de imágenes para borrarlas del servidor
+            $stmt_img = $pdo->prepare("SELECT imagen, imagen_secundaria FROM productos WHERE id_producto = ?");
+            $stmt_img->execute([$id_eliminar]);
+            $prod_img = $stmt_img->fetch(PDO::FETCH_ASSOC);
+
+            if ($prod_img) {
+                if (!empty($prod_img['imagen']) && file_exists('../uploads/' . $prod_img['imagen'])) {
+                    @unlink('../uploads/' . $prod_img['imagen']);
+                }
+                if (!empty($prod_img['imagen_secundaria']) && file_exists('../uploads/' . $prod_img['imagen_secundaria'])) {
+                    @unlink('../uploads/' . $prod_img['imagen_secundaria']);
+                }
+            }
+
+            // Eliminar de la base de datos
+            $stmt_del = $pdo->prepare("DELETE FROM productos WHERE id_producto = ?");
+            $stmt_del->execute([$id_eliminar]);
+
+            $mensaje = "Producto #$id_eliminar eliminado correctamente.";
+            $tipo_alerta = "success";
+        } catch (PDOException $e) {
+            $mensaje = "Error al eliminar el producto: " . $e->getMessage();
+            $tipo_alerta = "danger";
+        }
+    }
 }
+
+// Consultar todos los productos con su categoría
+$sql = "SELECT p.*, COALESCE(c.nombre_categoria, 'General') AS categoria_nombre 
+        FROM productos p 
+        LEFT JOIN categorias c ON p.id_categoria = c.id_categoria 
+        ORDER BY p.id_producto DESC";
+
+$stmt = $pdo->query($sql);
+$productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Productos - Moon Essence</title>
+    <title>Catálogo de Productos - Moon Essence</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
-        :root {
-            --bg-cielo: #0b131e;
-            --bg-tarjeta: #1a2332;
-            --accent-luna: #f9e8d0;
-            --texto-suave: #aebbc9;
-        }
         body {
-            background-color: var(--bg-cielo);
+            background-color: #0b111e;
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
-        .navbar-moon {
-            background-color: rgba(5, 9, 14, 0.95);
-            border-bottom: 1px solid #233044;
-            backdrop-filter: blur(8px);
+
+        .card-custom {
+            background-color: #101926;
+            border: 1px solid #1c2a3e;
+            border-radius: 12px;
         }
-        .brand-text {
-            color: var(--accent-luna) !important;
-            letter-spacing: 1.5px;
-            text-decoration: none;
-        }
-        .card-admin {
-            background-color: var(--bg-tarjeta);
-            border: 1px solid #28374d;
-            border-radius: 14px;
-        }
-        .table-moon {
-            color: #ffffff;
+
+        .table-custom {
+            color: #d1d5db;
             vertical-align: middle;
         }
-        .table-moon th {
-            background-color: #121a24 !important;
-            color: var(--accent-luna);
-            border-color: #28374d;
+
+        .table-custom th {
+            background-color: #101926;
+            color: #ffffff;
+            border-bottom: 2px solid #1c2a3e;
+            padding: 14px;
         }
-        .table-moon td {
-            background-color: var(--bg-tarjeta) !important;
-            color: #ffffff !important;
-            border-color: #28374d;
+
+        .table-custom td {
+            background-color: #101926;
+            border-bottom: 1px solid #1c2a3e;
+            padding: 12px 14px;
         }
-        .img-tabla {
-            width: 45px;
-            height: 45px;
+
+        .badge-cat {
+            background-color: #1f293d;
+            color: #93c5fd;
+            border: 1px solid #2d3e58;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .img-thumb {
+            width: 42px;
+            height: 42px;
             object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid #28374d;
+            border-radius: 6px;
+            border: 1px solid #2d3e58;
         }
-        .btn-beigecito {
-            background-color: var(--accent-luna);
-            color: #0b131e;
-            border: none;
+
+        .btn-action-edit {
+            background-color: transparent;
+            border: 1px solid #b45309;
+            color: #f59e0b;
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-action-edit:hover {
+            background-color: #f59e0b;
+            color: #000000;
+        }
+
+        .btn-action-delete {
+            background-color: transparent;
+            border: 1px solid #991b1b;
+            color: #ef4444;
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-action-delete:hover {
+            background-color: #ef4444;
+            color: #ffffff;
+        }
+
+        .btn-new-product {
+            background-color: #fce7f3;
+            color: #000000;
             font-weight: 600;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
         }
-        .btn-beigecito:hover {
+
+        .btn-new-product:hover {
             background-color: #ffffff;
-            color: #0b131e;
+            color: #000000;
         }
-        .text-muted-moon {
-            color: var(--texto-suave) !important;
+
+        .btn-dashboard {
+            background-color: #1f293d;
+            color: #ffffff;
+            border: 1px solid #2d3e58;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
         }
-        footer {
-            background-color: #05090e;
-            border-top: 1px solid #233044;
-            color: var(--texto-suave);
-            margin-top: auto;
+
+        .btn-dashboard:hover {
+            background-color: #2d3e58;
+            color: #ffffff;
         }
     </style>
 </head>
 <body>
 
-<!-- Barra de navegación unificada -->
-<nav class="navbar navbar-expand-lg navbar-moon sticky-top py-3">
-    <div class="container">
-        <a class="navbar-brand fw-bold fs-3 brand-text" href="admin_dashboard.php">
-            <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence <small class="fs-6 text-muted-moon">| Admin</small>
-        </a>
-        <div class="d-flex align-items-center gap-2">
-            <a href="admin_dashboard.php" class="btn btn-sm btn-outline-light"><i class="bi bi-speedometer2 me-1"></i> Panel</a>
-            <a href="admin_categorias.php" class="btn btn-sm btn-outline-light"><i class="bi bi-tags me-1"></i> Categorías</a>
-            <a href="../index.php" class="btn btn-sm btn-beigecito"><i class="bi bi-shop me-1"></i> Ver Tienda</a>
-            <a href="../auth/logout.php" class="btn btn-sm btn-danger"><i class="bi bi-box-arrow-right"></i> Salir</a>
+<div class="container my-5">
+    
+    <!-- Encabezado -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold m-0 d-flex align-items-center gap-2">
+            <i class="bi bi-box-seam"></i> Catálogo de Productos
+        </h3>
+        <div class="d-flex gap-2">
+            <a href="dashboard.php" class="btn btn-dashboard btn-sm d-flex align-items-center gap-1">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+            <a href="crear_producto.php" class="btn btn-new-product btn-sm d-flex align-items-center gap-1">
+                + Nuevo Producto
+            </a>
         </div>
     </div>
-</nav>
 
-<div class="container my-5">
-    <div class="card card-admin p-4 shadow-lg">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h3 class="brand-text mb-1"><i class="bi bi-box-seam me-2"></i>Gestión de Productos</h3>
-                <p class="text-muted-moon small m-0">Inventario y catálogo de prendas.</p>
-            </div>
-            <a href="crear_producto.php" class="btn btn-beigecito"><i class="bi bi-plus-lg me-1"></i> Nuevo Producto</a>
+    <!-- Mensaje de alerta -->
+    <?php if (!empty($mensaje)): ?>
+        <div class="alert alert-<?= $tipo_alerta ?> alert-dismissible fade show" role="alert">
+            <?= $mensaje ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+    <?php endif; ?>
 
-        <?php if (empty($productos)): ?>
-            <div class="text-center py-5">
-                <i class="bi bi-box2 fs-1 text-muted-moon"></i>
-                <p class="text-muted-moon mt-3">No hay productos registrados.</p>
-            </div>
-        <?php else: ?>
-            <div class="table-responsive">
-                <table class="table table-moon align-middle">
-                    <thead>
-                        <tr>
-                            <th>Imagen</th>
-                            <th>ID</th>
-                            <th>Nombre</th>
-                            <th>Precio</th>
-                            <th>Stock</th>
-                            <th class="text-end">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+    <!-- Tabla de Productos -->
+    <div class="card card-custom p-3 shadow-lg">
+        <div class="table-responsive">
+            <table class="table table-custom align-middle m-0">
+                <thead>
+                    <tr>
+                        <th>Ref / ID</th>
+                        <th>Imagen</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Precio</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (count($productos) > 0): ?>
                         <?php foreach ($productos as $prod): ?>
                             <tr>
+                                <td class="text-muted fw-semibold">Ref: <?= $prod['id_producto'] ?></td>
                                 <td>
                                     <?php if (!empty($prod['imagen'])): ?>
-                                        <img src="../uploads/<?= htmlspecialchars($prod['imagen']) ?>" alt="Producto" class="img-tabla">
+                                        <img src="../uploads/<?= htmlspecialchars($prod['imagen']) ?>" class="img-thumb" alt="Prod">
                                     <?php else: ?>
-                                        <span class="text-muted-moon small">Sin foto</span>
+                                        <div class="img-thumb d-flex align-items-center justify-content-center bg-secondary text-white fs-6">
+                                            <i class="bi bi-image"></i>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
-                                <td class="fw-bold text-warning">#<?= $prod['id_producto'] ?></td>
-                                <td class="fw-bold"><?= htmlspecialchars($prod['nombre_producto']) ?></td>
-                                <td class="text-success fw-bold">$<?= number_format($prod['precio'], 2, ',', '.') ?></td>
-                                <td><span class="badge bg-info text-dark"><?= $prod['stock'] ?> un.</span></td>
-                                <td class="text-end">
-                                    <a href="editar_producto.php?id=<?= $prod['id_producto'] ?>" class="btn btn-sm btn-outline-warning me-1"><i class="bi bi-pencil"></i></a>
-                                    <a href="eliminar_producto.php?id=<?= $prod['id_producto'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Estás seguro de eliminar este producto?');"><i class="bi bi-trash"></i></a>
+                                <td class="fw-medium text-white"><?= htmlspecialchars($prod['nombre_producto']) ?></td>
+                                <td>
+                                    <span class="badge-cat"><?= htmlspecialchars($prod['categoria_nombre']) ?></span>
+                                </td>
+                                <td class="fw-bold text-white">$<?= number_format($prod['precio'], 0, ',', '.') ?></td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <!-- Botón Editar -->
+                                        <a href="editar_producto.php?id=<?= $prod['id_producto'] ?>" class="btn-action-edit" title="Editar Producto">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+
+                                        <!-- Botón Eliminar con Confirmación -->
+                                        <a href="admin_productos.php?action=eliminar&id=<?= $prod['id_producto'] ?>" 
+                                           class="btn-action-delete" 
+                                           title="Eliminar Producto"
+                                           onclick="return confirm('¿Estás seguro de que deseas eliminar este producto?');">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No hay productos registrados en el catálogo.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 
-<footer class="py-4 mt-auto">
-    <div class="container text-center">
-        <p class="brand-text fw-bold mb-1 fs-5">Moon Essence</p>
-        <p class="small m-0">© 2026 Todos los derechos reservados.</p>
-    </div>
-</footer>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
