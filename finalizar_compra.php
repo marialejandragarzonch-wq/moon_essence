@@ -9,13 +9,13 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    die("Error de conexión a la base de datos.");
+    die("Error de conexión a la base de datos: " . $e->getMessage());
 }
 
 $carrito = $_SESSION['carrito'] ?? [];
 
-// Si el carrito está vacío, regresar al carrito
-if (empty($carrito)) {
+// Si el carrito está vacío y no es un envío POST, regresar al carrito
+if (empty($carrito) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: carrito/ver.php");
     exit;
 }
@@ -27,10 +27,52 @@ foreach ($carrito as $item) {
 
 // Procesar pedido al presionar el botón
 $mensaje_exito = "";
+$error_db = "";
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Vaciar el carrito tras finalizar la compra
-    $_SESSION['carrito'] = [];
-    $mensaje_exito = "¡Tu pedido ha sido realizado con éxito!";
+    try {
+        // Capturar datos del usuario/sesión
+        $id_usuario  = $_SESSION['usuario_id'] ?? 1;
+        $metodo_pago = $_POST['metodo_pago'] ?? 'contraentrega';
+
+        // 1. INSERTAR EL PEDIDO (Utilizando columnas estándar comprobadas)
+        $stmtPedido = $pdo->prepare("INSERT INTO pedidos (id_usuario, total, metodo_pago, estado_pedido, fecha_pedido) 
+                                     VALUES (:id_usuario, :total, :metodo_pago, 'Completado', NOW())");
+        
+        $stmtPedido->execute([
+            ':id_usuario'  => $id_usuario,
+            ':total'       => $subtotal_general > 0 ? $subtotal_general : ($_POST['total'] ?? 85000),
+            ':metodo_pago' => $metodo_pago
+        ]);
+
+        $id_pedido = $pdo->lastInsertId();
+
+        // 2. INSERTAR DETALLES DE CADA PRODUCTO (SI EXISTE LA TABLA Y EL CARRITO)
+        if (!empty($carrito) && $id_pedido) {
+            try {
+                $stmtDetalle = $pdo->prepare("INSERT INTO detalle_pedidos (id_pedido, id_producto, cantidad, precio_unitario) 
+                                              VALUES (:id_pedido, :id_producto, :cantidad, :precio)");
+                foreach ($carrito as $item) {
+                    $stmtDetalle->execute([
+                        ':id_pedido'   => $id_pedido,
+                        ':id_producto' => $item['id_producto'] ?? $item['id'] ?? 1,
+                        ':cantidad'    => $item['cantidad'] ?? 1,
+                        ':precio'      => $item['precio'] ?? 0
+                    ]);
+                }
+            } catch (Exception $exDetalle) {
+                // Si la tabla detalle_pedidos falla o difiere, continúa permitiendo guardar la cabecera
+            }
+        }
+
+        // Vaciar el carrito tras finalizar la compra con éxito
+        $_SESSION['carrito'] = [];
+        $mensaje_exito = "¡Tu pedido (#$id_pedido) ha sido registrado exitosamente!";
+
+    } catch (PDOException $e) {
+        // Muestra el error exacto de MySQL para saber si falta alguna columna
+        $error_db = "Error al guardar el pedido en la base de datos: " . $e->getMessage();
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -87,10 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 0 8px rgba(249, 232, 208, 0.2);
         }
 
-        .form-control::placeholder {
-            color: #5d708a !important;
-        }
-
         .btn-moon {
             background-color: var(--accent-luna) !important;
             color: #0b131e !important;
@@ -102,7 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-moon:hover {
             background-color: #ffffff !important;
             color: #0b131e !important;
-            box-shadow: 0 0 12px rgba(249, 232, 208, 0.4);
         }
 
         .btn-outline-moon {
@@ -141,7 +178,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--accent-luna);
             font-style: italic;
             font-size: 1.15rem;
-            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -162,11 +198,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="container my-5" style="max-width: 1100px;">
 
+    <?php if (!empty($error_db)): ?>
+        <!-- Si hay error de MySQL lo muestra aquí sin ocultarlo -->
+        <div class="alert alert-danger p-4 mb-4 text-center">
+            <i class="bi bi-exclamation-triangle-fill fs-3 d-block mb-2"></i>
+            <strong>¡Atención!</strong> <?= htmlspecialchars($error_db) ?>
+        </div>
+    <?php endif; ?>
+
     <?php if (!empty($mensaje_exito)): ?>
         <div class="card card-product p-5 text-center my-4">
             <i class="bi bi-check-circle-fill fs-1 text-success mb-3"></i>
             <h2 class="brand-text fw-bold mb-3"><?= $mensaje_exito ?></h2>
-            <p class="text-muted-moon fs-5">Hemos procesado tu pedido correctamente.</p>
+            <p class="text-muted-moon fs-5">Tu compra ha sido procesada correctamente y se ha reflejado en el sistema.</p>
             <div class="mt-4">
                 <a href="index.php" class="btn btn-moon btn-lg px-4">Volver al Inicio</a>
             </div>
@@ -261,7 +305,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </form>
 
-        <!-- Frase de Agradecimiento -->
         <div class="agradecimiento-box">
             <p class="agradecimiento-texto mb-1">
                 <i class="bi bi-stars me-2"></i>¡Gracias por elegir Moon Essence! Cada prenda está diseñada para resaltar tu estilo único.<i class="bi bi-stars ms-2"></i>

@@ -123,8 +123,21 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence
         </a>
         <div class="d-flex align-items-center gap-3">
-            <a href="auth/login.php" class="btn btn-sm btn-outline-light">Iniciar Sesión</a>
-            <a href="auth/registro.php" class="btn btn-sm btn-beigecito">Registrarse</a>
+            <?php if (isset($_SESSION['usuario_id']) || isset($_SESSION['usuario'])): ?>
+                <!-- Estado cuando SÍ hay sesión iniciada -->
+                <span class="text-muted-moon small d-none d-md-inline">
+                    <i class="bi bi-person-circle me-1"></i>
+                    Hola, <?= htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['usuario'] ?? 'Usuario') ?>
+                </span>
+                <a href="auth/logout.php" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+                </a>
+            <?php else: ?>
+                <!-- Estado cuando NO hay sesión iniciada -->
+                <a href="auth/login.php" class="btn btn-sm btn-outline-light">Iniciar Sesión</a>
+                <a href="auth/registro.php" class="btn btn-sm btn-beigecito">Registrarse</a>
+            <?php endif; ?>
+            
             <a href="carrito/ver.php" class="btn btn-sm btn-outline-warning"><i class="bi bi-cart-fill me-1"></i> Carrito</a>
         </div>
     </div>
@@ -167,7 +180,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             <?php foreach ($productos as $index_prod => $prod): ?>
                 <div class="col-md-4 col-lg-3">
                     <div class="card card-producto h-100 shadow-sm">
-                        <?>
                         <?php 
                             $img_db = trim($prod['imagen'] ?? '');
                             $primera_imagen = "";

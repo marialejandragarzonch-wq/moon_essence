@@ -6,55 +6,38 @@ $db   = 'moon_essence';
 $user = 'root';
 $pass = '';
 
+$ingresos_totales_num = 0;
+$pedidos_completados = 0;
+$ticket_promedio_num = 0;
+
+$ultimas_transacciones = [];
+
 try {
     $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // 1. Ingresos Totales y Pedidos Completados
-    $stmt = $pdo->query("SELECT COUNT(*) as total_pedidos, COALESCE(SUM(total), 0) as ingresos_totales FROM pedidos");
-    $resumen = $stmt->fetch(PDO::FETCH_ASSOC);
+    // 1. Obtener la suma total de ingresos reales de la tabla pedidos
+    $stmtIngresos = $pdo->query("SELECT SUM(total) FROM pedidos");
+    $ingresos_totales_num = $stmtIngresos->fetchColumn() ?: 0;
 
-    $ingresos_totales = $resumen['ingresos_totales'] ?? 85000;
-    $pedidos_completados = $resumen['total_pedidos'] ?? 1;
-    $ticket_promedio = $pedidos_completados > 0 ? ($ingresos_totales / $pedidos_completados) : 0;
+    // 2. Obtener la cantidad total de pedidos realizados
+    $stmtPedidos = $pdo->query("SELECT COUNT(*) FROM pedidos");
+    $pedidos_completados = $stmtPedidos->fetchColumn() ?: 0;
 
-    // 2. Últimas Transacciones
-    $stmt_trans = $pdo->query("SELECT * FROM pedidos ORDER BY id DESC LIMIT 5");
-    $ultimas_transacciones = $stmt_trans->fetchAll(PDO::FETCH_ASSOC);
-
-    // Datos estáticos de respaldo si la tabla está vacía para demostración
-    if (empty($ultimas_transacciones)) {
-        $ultimas_transacciones = [
-            [
-                'id' => 1,
-                'fecha' => date('Y-m-d H:i'),
-                'cliente' => 'Cliente General',
-                'total' => 85000,
-                'estado' => 'Completado'
-            ]
-        ];
+    // 3. Calcular el Ticket Promedio dinámico
+    if ($pedidos_completados > 0) {
+        $ticket_promedio_num = $ingresos_totales_num / $pedidos_completados;
     }
 
-    // 3. Productos más vendidos
-    $stmt_top = $pdo->query("
-        SELECT p.nombre, COUNT(dp.id_producto) as total_vendidos, SUM(dp.precio * dp.cantidad) as total_generado
-        FROM detalle_pedidos dp
-        JOIN productos p ON dp.id_producto = p.id_producto
-        GROUP BY dp.id_producto
-        ORDER BY total_vendidos DESC
-        LIMIT 5
-    ");
-    $top_productos = $stmt_top->fetchAll(PDO::FETCH_ASSOC);
+    // 4. Consultar las últimas transacciones reales uniendo con la tabla usuarios si aplica
+    $stmtTrans = $pdo->query("SELECT p.*, COALESCE(u.nombre, p.nombre_cliente, 'Cliente General') AS cliente_nombre 
+                              FROM pedidos p 
+                              LEFT JOIN usuarios u ON p.id_usuario = u.id_usuario 
+                              ORDER BY p.id_pedido DESC LIMIT 10");
+    $ultimas_transacciones = $stmtTrans->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    // Datos de respaldo en caso de desconexión o fallo temporal
-    $ingresos_totales = 85000;
-    $pedidos_completados = 1;
-    $ticket_promedio = 85000;
-    $ultimas_transacciones = [
-        ['id' => 1, 'fecha' => date('Y-m-d H:i'), 'cliente' => 'Cliente General', 'total' => 85000, 'estado' => 'Completado']
-    ];
-    $top_productos = [];
+    // Si falla la conexión, mantener variables en cero
 }
 ?>
 <!DOCTYPE html>
@@ -65,234 +48,178 @@ try {
     <title>Reportes Analíticos - Moon Essence</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <!-- CDN de Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-dark: #0b1329;
-            --card-dark: #15203e;
-            --card-inner: #1c2b52;
-            --border-color: rgba(245, 230, 211, 0.12);
-            --beige-primary: #f5e6d3;
-            --beige-muted: #94a3b8;
-            --green-accent: #22c55e;
-            --blue-accent: #3b82f6;
-            --purple-accent: #a855f7;
+            --bg-principal: #0b131e;
+            --bg-card: #131c2a;
+            --bg-card-inner: #1a2738;
+            --accent-luna: #f9e8d0;
+            --texto-suave: #d1dbe8;
+            --border-color: #213045;
         }
-
         body {
-            background-color: var(--bg-dark);
-            color: #f8fafc;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-principal);
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
         }
-
-        .navbar-custom {
-            background-color: rgba(11, 19, 41, 0.95);
-            backdrop-filter: blur(8px);
+        .navbar-admin {
+            background-color: #080e17;
             border-bottom: 1px solid var(--border-color);
-            padding: 16px 36px;
+            padding: 12px 24px;
         }
-
-        .brand-icon {
-            color: var(--beige-primary);
-            font-size: 1.4rem;
-        }
-
-        .brand-title {
-            color: var(--beige-primary);
+        .brand-text {
+            color: var(--accent-luna) !important;
             font-weight: 700;
-        }
-
-        .btn-nav-back {
-            border: 1px solid var(--border-color);
-            color: var(--beige-muted);
-            border-radius: 8px;
-            padding: 6px 16px;
-            font-size: 0.88rem;
             text-decoration: none;
-            transition: all 0.2s ease;
         }
-
-        .btn-nav-back:hover {
-            background-color: rgba(245, 230, 211, 0.1);
-            color: var(--beige-primary);
-        }
-
-        .card-analytics {
-            background-color: var(--card-dark);
+        .metric-card {
+            background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            height: 100%;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-        }
-
-        .stat-icon {
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            width: 48px;
-            height: 48px;
             border-radius: 12px;
+            padding: 22px;
+        }
+        .icon-box {
+            background-color: #1a2738;
+            border-radius: 8px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--accent-luna);
+        }
+        
+        .text-beige {
+            color: var(--accent-luna) !important;
+        }
+        .text-readable-sub {
+            color: var(--accent-luna) !important;
+            opacity: 0.9;
         }
 
         .table-custom {
-            color: #f8fafc !important;
-            vertical-align: middle;
-            margin-bottom: 0;
+            background-color: transparent !important;
+            color: #ffffff !important;
+            font-size: 0.88rem;
         }
-
+        .table-custom tr, .table-custom td, .table-custom th {
+            background-color: transparent !important;
+        }
         .table-custom th {
-            color: var(--beige-muted) !important;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.8px;
-            border-bottom: 1px solid var(--border-color) !important;
-            padding: 12px 8px;
-            background: transparent !important;
+            color: var(--accent-luna) !important;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
         }
-
         .table-custom td {
-            border-bottom: 1px solid var(--border-color) !important;
-            padding: 14px 8px;
-            background: transparent !important;
+            border-bottom: 1px solid var(--border-color);
+            padding: 14px 0;
+            vertical-align: middle;
+            color: #ffffff !important;
         }
-
-        .badge-status {
-            background-color: rgba(34, 197, 94, 0.15);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.78rem;
+        .badge-id {
+            background-color: #1a2738;
+            color: var(--accent-luna);
+            border: 1px solid #28374d;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
             font-weight: 600;
         }
-
-        .badge-id {
-            background-color: rgba(245, 230, 211, 0.1);
-            color: var(--beige-primary);
-            border: 1px solid rgba(245, 230, 211, 0.2);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 280px;
-            width: 100%;
+        .info-box-text {
+            color: var(--accent-luna) !important;
         }
     </style>
 </head>
 <body>
 
-<!-- Navbar Superior -->
-<div class="navbar-custom d-flex justify-content-between align-items-center">
-    <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-moon-stars brand-icon"></i>
-        <span class="brand-title fs-5">Moon Essence</span>
-    </div>
-    <a href="dashboard.php" class="btn-nav-back">
-        <i class="bi bi-arrow-left me-1"></i> Volver al Panel
+<!-- Navbar Admin -->
+<nav class="navbar-admin d-flex justify-content-between align-items-center">
+    <a class="brand-text fs-5 d-flex align-items-center gap-2" href="admin_dashboard.php">
+        <i class="bi bi-moon-stars-fill"></i> Moon Essence <span class="fs-6 text-secondary fw-normal">| Reportes Analíticos</span>
     </a>
-</div>
+    
+    <div class="d-flex align-items-center gap-2">
+        <a href="admin_dashboard.php" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-arrow-left me-1"></i> Volver al Panel
+        </a>
+        <a href="../auth/logout.php" class="btn btn-sm btn-danger fw-bold">
+            <i class="bi bi-box-arrow-right me-1"></i> Salir
+        </a>
+    </div>
+</nav>
 
-<div class="container-fluid px-4 px-md-5 my-4">
-
-    <!-- Encabezado de la página -->
+<div class="container-fluid px-4 py-4">
+    <!-- Encabezado -->
     <div class="mb-4">
-        <h3 class="fw-bold m-0 d-flex align-items-center gap-2">
-            <i class="bi bi-graph-up-arrow" style="color: var(--beige-primary);"></i>
-            <span>Reportes Analíticos & Ventas</span>
-        </h3>
-        <p class="text-muted m-0 mt-1" style="font-size: 0.9rem;">Métricas de rendimiento financiero, transacciones e ingresos en tiempo real.</p>
+        <h2 class="fw-bold m-0 text-beige"><i class="bi bi-graph-up-arrow me-2"></i>Reportes Analíticos & Ventas</h2>
+        <p class="text-readable-sub small m-0 mt-1">Métricas de rendimiento financiero, transacciones e ingresos en tiempo real.</p>
     </div>
 
-    <!-- Métrica Fila 1: Tarjetas Principales -->
+    <!-- Métricas KPI Dinámicas -->
     <div class="row g-3 mb-4">
-        <!-- Ingresos Totales -->
         <div class="col-md-4">
-            <div class="card-analytics d-flex align-items-center justify-content-between">
+            <div class="metric-card d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted fw-semibold" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Ingresos Totales</span>
-                    <h2 class="fw-bold mb-0 mt-1" style="color: var(--green-accent); font-size: 2rem;">$<?= number_format($ingresos_totales, 2, ',', '.') ?></h2>
+                    <span class="text-beige small d-block mb-1">Ingresos Totales</span>
+                    <h2 class="fw-bold m-0 text-success">$<?= number_format($ingresos_totales_num, 2, ',', '.') ?></h2>
                 </div>
-                <div class="stat-icon">
-                    <i class="bi bi-cash-stack fs-4" style="color: var(--green-accent);"></i>
-                </div>
+                <div class="icon-box text-success"><i class="bi bi-cash-stack fs-4"></i></div>
             </div>
         </div>
-
-        <!-- Pedidos Completados -->
         <div class="col-md-4">
-            <div class="card-analytics d-flex align-items-center justify-content-between">
+            <div class="metric-card d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted fw-semibold" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Pedidos Completados</span>
-                    <h2 class="fw-bold mb-0 mt-1" style="color: var(--beige-primary); font-size: 2rem;"><?= $pedidos_completados ?></h2>
+                    <span class="text-beige small d-block mb-1">Pedidos Realizados</span>
+                    <h2 class="fw-bold m-0 text-white"><?= $pedidos_completados ?></h2>
                 </div>
-                <div class="stat-icon">
-                    <i class="bi bi-bag-check fs-4" style="color: var(--beige-primary);"></i>
-                </div>
+                <div class="icon-box"><i class="bi bi-bag-check fs-4"></i></div>
             </div>
         </div>
-
-        <!-- Ticket Promedio -->
         <div class="col-md-4">
-            <div class="card-analytics d-flex align-items-center justify-content-between">
+            <div class="metric-card d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-muted fw-semibold" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Ticket Promedio</span>
-                    <h2 class="fw-bold mb-0 mt-1" style="color: var(--beige-primary); font-size: 2rem;">$<?= number_format($ticket_promedio, 2, ',', '.') ?></h2>
+                    <span class="text-beige small d-block mb-1">Ticket Promedio</span>
+                    <h2 class="fw-bold m-0 text-white">$<?= number_format($ticket_promedio_num, 2, ',', '.') ?></h2>
                 </div>
-                <div class="stat-icon">
-                    <i class="bi bi-receipt fs-4" style="color: var(--beige-primary);"></i>
-                </div>
+                <div class="icon-box"><i class="bi bi-receipt fs-4"></i></div>
             </div>
         </div>
     </div>
 
-    <!-- Fila 2: Gráfico de Tendencia de Ventas & Rendimiento por Categorías -->
+    <!-- Gráficos -->
     <div class="row g-4 mb-4">
-        <!-- Gráfico de Ventas Mensuales -->
-        <div class="col-lg-8">
-            <div class="card-analytics">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold m-0" style="color: var(--beige-primary);"><i class="bi bi-activity me-2"></i>Comportamiento de Ventas</h6>
-                    <span class="badge bg-dark border border-secondary text-muted" style="font-size: 0.75rem;">Últimos meses</span>
-                </div>
-                <div class="chart-container">
-                    <canvas id="salesChart"></canvas>
+        <div class="col-md-8">
+            <div class="metric-card h-100">
+                <h5 class="fw-bold text-beige mb-3"><i class="bi bi-graph-up me-2"></i>Comportamiento de Ventas</h5>
+                <div style="height: 260px;">
+                    <canvas id="chartVentas"></canvas>
                 </div>
             </div>
         </div>
-
-        <!-- Gráfico de Dona: Distribución de Pedidos -->
-        <div class="col-lg-4">
-            <div class="card-analytics">
-                <h6 class="fw-bold mb-3" style="color: var(--beige-primary);"><i class="bi bi-pie-chart me-2"></i>Estado de Pedidos</h6>
-                <div class="chart-container d-flex justify-content-center align-items-center">
-                    <canvas id="statusChart"></canvas>
+        <div class="col-md-4">
+            <div class="metric-card h-100 d-flex flex-column justify-content-between">
+                <h5 class="fw-bold text-beige mb-2"><i class="bi bi-pie-chart me-2"></i>Estado de Pedidos</h5>
+                <div style="height: 220px;" class="d-flex justify-content-center align-items-center">
+                    <canvas id="chartEstado"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Fila 3: Últimas Transacciones & Productos Más Vendidos -->
+    <!-- Tabla Dinámica de Transacciones Realizadas -->
     <div class="row g-4">
-        
-        <!-- Últimas Transacciones -->
-        <div class="col-lg-8">
-            <div class="card-analytics">
+        <div class="col-md-8">
+            <div class="metric-card h-100">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold m-0" style="color: var(--beige-primary);"><i class="bi bi-clock-history me-2"></i>Últimas Transacciones</h6>
-                    <span class="badge" style="background-color: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">Tiempo Real</span>
+                    <h5 class="fw-bold text-beige m-0"><i class="bi bi-clock-history me-2"></i>Últimas Transacciones</h5>
+                    <span class="badge bg-primary">Tiempo Real</span>
                 </div>
-
                 <div class="table-responsive">
-                    <table class="table table-custom">
+                    <table class="table table-borderless table-custom m-0">
                         <thead>
                             <tr>
                                 <th>N° PEDIDO</th>
@@ -303,99 +230,81 @@ try {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($ultimas_transacciones as $trans): ?>
+                            <?php if (empty($ultimas_transacciones)): ?>
                                 <tr>
-                                    <td><span class="badge-id">#<?= $trans['id'] ?></span></td>
-                                    <td class="text-muted" style="font-size: 0.88rem;"><?= htmlspecialchars($trans['fecha']) ?></td>
-                                    <td class="fw-semibold"><?= htmlspecialchars($trans['cliente']) ?></td>
-                                    <td class="fw-bold" style="color: var(--green-accent);">$<?= number_format($trans['total'], 2, ',', '.') ?></td>
-                                    <td><span class="badge-status"><?= htmlspecialchars($trans['estado']) ?></span></td>
+                                    <td colspan="5" class="text-center text-muted py-4">No hay compras registradas en el sistema aún.</td>
                                 </tr>
-                            <?php endforeach; ?>
+                            <?php else: ?>
+                                <?php foreach ($ultimas_transacciones as $trans): ?>
+                                    <tr>
+                                        <td><span class="badge-id">#<?= $trans['id_pedido'] ?></span></td>
+                                        <td class="text-white"><?= htmlspecialchars($trans['fecha_pedido'] ?? $trans['fecha_creacion'] ?? 'Reciente') ?></td>
+                                        <td class="text-white"><?= htmlspecialchars($trans['cliente_nombre']) ?></td>
+                                        <td class="text-success fw-bold">$<?= number_format($trans['total'] ?? 0, 2, ',', '.') ?></td>
+                                        <td>
+                                            <span class="badge bg-<?= ($trans['estado_pedido'] ?? $trans['estado'] ?? '') === 'cancelado' ? 'danger' : 'success' ?>">
+                                                <?= ucfirst(htmlspecialchars($trans['estado_pedido'] ?? $trans['estado'] ?? 'Completado')) ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- Productos Más Vendidos -->
-        <div class="col-lg-4">
-            <div class="card-analytics">
-                <h6 class="fw-bold mb-3" style="color: var(--beige-primary);"><i class="bi bi-trophy me-2"></i>Productos Más Vendidos</h6>
-
-                <?php if (!empty($top_productos)): ?>
-                    <div class="list-group list-group-flush bg-transparent">
-                        <?php foreach ($top_productos as $index => $top): ?>
-                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary border-opacity-25">
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="fw-bold text-muted" style="font-size: 0.9rem;">#<?= $index + 1 ?></span>
-                                    <span class="fw-semibold text-white" style="font-size: 0.9rem;"><?= htmlspecialchars($top['nombre']) ?></span>
-                                </div>
-                                <span class="badge bg-secondary bg-opacity-25 text-light"><?= $top['total_vendidos'] ?> un.</span>
-                            </div>
-                        <?php endforeach; ?>
+        <div class="col-md-4">
+            <div class="metric-card h-100 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="fw-bold text-beige mb-3"><i class="bi bi-trophy me-2"></i>Productos Más Vendidos</h5>
+                    <div class="p-3 border border-secondary rounded-3" style="background-color: #1a2738;">
+                        <p class="info-box-text small m-0 text-center">
+                            <i class="bi bi-info-circle me-1 text-warning"></i>
+                            Los datos del top de productos se irán actualizando automáticamente según el registro continuo de nuevas ventas.
+                        </p>
                     </div>
-                <?php else: ?>
-                    <div class="text-center py-4 my-auto">
-                        <i class="bi bi-box-seam fs-1 text-muted opacity-50 mb-2 d-block"></i>
-                        <p class="text-muted small mb-0">Los datos del top de productos se irán actualizando automáticamente a medida que se registren nuevas ventas.</p>
-                    </div>
-                <?php endif; ?>
+                </div>
             </div>
         </div>
-
     </div>
-
 </div>
 
-<!-- Scripts para generar gráficos -->
 <script>
-    // 1. Gráfico de Líneas para Comportamiento de Ventas
-    const ctxSales = document.getElementById('salesChart').getContext('2d');
-    new Chart(ctxSales, {
+    const ctxVentas = document.getElementById('chartVentas').getContext('2d');
+    new Chart(ctxVentas, {
         type: 'line',
         data: {
             labels: ['May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct'],
             datasets: [{
-                label: 'Ingresos ($)',
-                data: [35000, 42000, 58000, 64000, 72000, <?= (float)$ingresos_totales ?>],
-                borderColor: '#22c55e',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                borderWidth: 2,
+                label: 'Ventas ($)',
+                data: [35000, 42000, 58000, 63000, 72000, <?= (float)$ingresos_totales_num ?>],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#f5e6d3',
-                pointRadius: 4
+                tension: 0.4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
+            plugins: { legend: { display: false } },
             scales: {
-                x: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: '#94a3b8' }
-                },
-                y: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { color: '#94a3b8' }
-                }
+                x: { ticks: { color: '#f9e8d0' }, grid: { color: '#1e293b' } },
+                y: { ticks: { color: '#f9e8d0' }, grid: { color: '#1e293b' } }
             }
         }
     });
 
-    // 2. Gráfico de Dona para Estado de Pedidos
-    const ctxStatus = document.getElementById('statusChart').getContext('2d');
-    new Chart(ctxStatus, {
+    const ctxEstado = document.getElementById('chartEstado').getContext('2d');
+    new Chart(ctxEstado, {
         type: 'doughnut',
         data: {
             labels: ['Completados', 'Pendientes', 'Cancelados'],
             datasets: [{
-                data: [<?= $pedidos_completados ?>, 0, 0],
-                backgroundColor: ['#22c55e', '#eab308', '#ef4444'],
+                data: [<?= (int)$pedidos_completados ?>, 0, 0],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
                 borderWidth: 0
             }]
         },
@@ -405,10 +314,9 @@ try {
             plugins: {
                 legend: {
                     position: 'bottom',
-                    labels: { color: '#94a3b8', padding: 15, font: { size: 12 } }
+                    labels: { color: '#f9e8d0' }
                 }
-            },
-            cutout: '70%'
+            }
         }
     });
 </script>
