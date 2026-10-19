@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 30-09-2026 a las 17:51:34
+-- Tiempo de generación: 19-10-2026 a las 18:11:24
 -- Versión del servidor: 10.1.38-MariaDB
 -- Versión de PHP: 7.1.27
 
@@ -60,6 +60,14 @@ CREATE TABLE `detalle_pedidos` (
   `cantidad` int(11) NOT NULL,
   `precio_unitario` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+--
+-- Volcado de datos para la tabla `detalle_pedidos`
+--
+
+INSERT INTO `detalle_pedidos` (`id_detalle`, `id_pedido`, `id_producto`, `cantidad`, `precio_unitario`) VALUES
+(1, 2, 18, 1, '180000.00'),
+(2, 2, 12, 1, '110000.00');
 
 -- --------------------------------------------------------
 
@@ -136,7 +144,8 @@ CREATE TABLE `pedidos` (
 --
 
 INSERT INTO `pedidos` (`id_pedido`, `id_usuario`, `fecha_pedido`, `total`, `metodo_pago`, `estado_pedido`, `fecha_creacion`, `nombre_cliente`, `telefono`, `direccion`, `ciudad`, `notas`) VALUES
-(1, 1, '2026-08-19 15:25:14', '85000.00', 'nequi', 'pendiente', '2026-08-19 10:25:14', NULL, NULL, NULL, NULL, NULL);
+(1, 1, '2026-08-19 15:25:14', '85000.00', 'nequi', 'pendiente', '2026-08-19 10:25:14', NULL, NULL, NULL, NULL, NULL),
+(2, 5, '2026-10-19 12:36:14', '290000.00', '', '', '2026-10-19 07:36:14', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -307,7 +316,7 @@ ALTER TABLE `categorias`
 -- AUTO_INCREMENT de la tabla `detalle_pedidos`
 --
 ALTER TABLE `detalle_pedidos`
-  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `fotos_producto`
@@ -325,7 +334,7 @@ ALTER TABLE `notificaciones`
 -- AUTO_INCREMENT de la tabla `pedidos`
 --
 ALTER TABLE `pedidos`
-  MODIFY `id_pedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id_pedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `productos`
