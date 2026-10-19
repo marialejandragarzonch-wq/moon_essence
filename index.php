@@ -123,6 +123,15 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence
         </a>
         <div class="d-flex align-items-center gap-3">
+            <a href="quienes_somos.php" class="btn btn-sm btn-outline-light">
+                <i class="bi bi-people me-1"></i> Quiénes Somos
+            </a>
+
+            <!-- Opción Tratamiento de Datos (Abre el Modal) -->
+            <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalTratamientoDatos">
+                <i class="bi bi-shield-lock me-1"></i> Tratamiento de datos
+            </button>
+
             <?php if (isset($_SESSION['usuario_id']) || isset($_SESSION['usuario'])): ?>
                 <!-- Estado cuando SÍ hay sesión iniciada -->
                 <span class="text-muted-moon small d-none d-md-inline">
@@ -137,7 +146,7 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                 <a href="auth/login.php" class="btn btn-sm btn-outline-light">Iniciar Sesión</a>
                 <a href="auth/registro.php" class="btn btn-sm btn-beigecito">Registrarse</a>
             <?php endif; ?>
-            
+
             <a href="carrito/ver.php" class="btn btn-sm btn-outline-warning"><i class="bi bi-cart-fill me-1"></i> Carrito</a>
         </div>
     </div>
@@ -185,7 +194,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                             $primera_imagen = "";
                             $segunda_imagen = "";
 
-                            // Replicando la lógica de búsqueda robusta por prefijo numérico de la base de datos
                             preg_match('/^(\d+)/', $img_db, $matches);
                             if (!empty($matches[1])) {
                                 $prefijo = $matches[1];
@@ -205,7 +213,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                                 }
                             }
 
-                            // Fallbacks por si acaso
                             if (empty($primera_imagen) && !empty($img_db) && file_exists("uploads/" . $img_db)) {
                                 $primera_imagen = "uploads/" . $img_db;
                             }
@@ -213,7 +220,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                             $carousel_id = "carouselProd" . $index_prod;
                         ?>
 
-                        <!-- Carrusel Bootstrap para alternar entre la foto 1 y la foto 2 de forma fluida -->
                         <?php if (!empty($primera_imagen) && !empty($segunda_imagen)): ?>
                             <div id="<?= $carousel_id ?>" class="carousel slide" data-bs-ride="carousel">
                                 <div class="carousel-inner">
@@ -250,7 +256,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                                 $esCalzado = (strpos($nombreCat, 'calzado') !== false || strpos($nombreProd, 'tenis') !== false || strpos($nombreProd, 'bota') !== false || strpos($nombreProd, 'zapatilla') !== false || strpos($nombreProd, 'zapato') !== false);
                             ?>
 
-                            <!-- Selector de Tallas Desplegable -->
                             <form action="carrito/agregar.php" method="POST" class="mt-auto">
                                 <input type="hidden" name="id_producto" value="<?= $prod['id_producto'] ?>">
                                 
@@ -290,6 +295,28 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
         <p class="small m-0">© 2026 Todos los derechos reservados.</p>
     </div>
 </footer>
+
+<!-- Modal de Tratamiento de Datos -->
+<div class="modal fade" id="modalTratamientoDatos" tabindex="-1" aria-labelledby="modalTratamientoDatosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #131c2a; border: 1px solid #213045; color: #ffffff; border-radius: 16px;">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title fw-bold" id="modalTratamientoDatosLabel" style="color: #f9e8d0;">
+                    <i class="bi bi-shield-check-fill me-2"></i> Tratamiento de datos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-start">
+                <p class="m-0" style="color: #aebbc9; line-height: 1.6; font-size: 0.95rem;">
+                    El presente proyecto tiene fines exclusivamente académicos. Los datos utilizados durante el desarrollo, las pruebas y la demostración del sistema son ficticios y fueron creados únicamente con fines de simulación. El sistema no recolecta, almacena ni procesa datos personales reales de estudiantes, docentes o terceros.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn btn-sm px-4 fw-bold" style="background-color: #f9e8d0; color: #0b131e;" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

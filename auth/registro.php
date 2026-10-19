@@ -1,36 +1,55 @@
 <?php
 session_start();
+
 $host = 'localhost';
 $db   = 'moon_essence';
 $user = 'root';
 $pass = '';
 
-$error = '';
-$exito = '';
+$error_msg = "";
+$exito_msg = "";
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $nombre = trim($_POST['nombre'] ?? '');
-        $email = trim($_POST['email'] ?? '');
+        $nombre   = trim($_POST['nombre'] ?? '');
+        $email    = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        if (!empty($nombre) && !empty($email) && !empty($password)) {
-            // Encriptar contraseña de forma segura
-            $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        // Expresión regular solicitada para la contraseña
+        $patron_password = '/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/';
 
-            // Ajusta el nombre de la tabla y columnas si en tu base de datos se llaman diferente
-            $stmt = $pdo->prepare("INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)");
-            $stmt->execute([$nombre, $email, $passwordHash]);
-
-            $exito = "¡Cuenta creada con éxito! Ya puedes iniciar sesión.";
+        // 1. Validar la contraseña contra la Expresión Regular
+        if (!preg_match($patron_password, $password)) {
+            $error_msg = "La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula y un número.";
         } else {
-            $error = "Por favor completa todos los campos.";
+            // 2. Verificar si el correo ya existe
+            $stmtCheck = $pdo->prepare("SELECT COUNT(*) FROM usuarios WHERE email = :email");
+            $stmtCheck->execute([':email' => $email]);
+            
+            if ($stmtCheck->fetchColumn() > 0) {
+                $error_msg = "El correo electrónico ya se encuentra registrado.";
+            } else {
+                // 3. Encriptar la contraseña con BCRYPT
+                $password_hash = password_hash($password, PASSWORD_BCRYPT);
+
+                // 4. Registrar al usuario en la base de datos
+                $stmtInsert = $pdo->prepare("INSERT INTO usuarios (nombre, email, password, rol, fecha_registro) 
+                                             VALUES (:nombre, :email, :password, 'cliente', NOW())");
+                
+                $stmtInsert->execute([
+                    ':nombre'   => $nombre,
+                    ':email'    => $email,
+                    ':password' => $password_hash
+                ]);
+
+                $exito_msg = "¡Registro exitoso! Ya puedes iniciar sesión con tu cuenta.";
+            }
         }
     } catch (PDOException $e) {
-        $error = "Este correo ya está registrado o hubo un error en la base de datos.";
+        $error_msg = "Error en la base de datos: " . $e->getMessage();
     }
 }
 ?>
@@ -44,98 +63,148 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <style>
         :root {
-            --bg-cielo: #0b131e;
-            --bg-tarjeta: #1a2332;
+            --bg-principal: #0b131e;
+            --bg-card: #131c2a;
             --accent-luna: #f9e8d0;
             --texto-suave: #aebbc9;
+            --border-color: #213045;
         }
+
         body {
-            background-color: var(--bg-cielo);
+            background-color: var(--bg-principal);
             color: #ffffff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             justify-content: center;
         }
-        .card-auth {
-            background-color: var(--bg-tarjeta);
-            border: 1px solid #28374d;
-            border-radius: 14px;
+
+        .card-registro {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
+
         .brand-text {
             color: var(--accent-luna) !important;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             text-decoration: none;
         }
+
         .form-control {
-            background-color: #121a24;
-            border: 1px solid #28374d;
-            color: #ffffff;
+            background-color: #0e1724 !important;
+            border: 1px solid var(--border-color) !important;
+            color: #ffffff !important;
+            padding: 12px 15px;
+            border-radius: 8px;
         }
+
         .form-control:focus {
-            background-color: #121a24;
-            border-color: var(--accent-luna);
-            color: #ffffff;
-            box-shadow: none;
+            border-color: var(--accent-luna) !important;
+            box-shadow: 0 0 8px rgba(249, 232, 208, 0.2);
         }
-        .btn-beigecito {
-            background-color: var(--accent-luna);
-            color: #0b131e;
+
+        .form-control::placeholder {
+            color: #5d708a !important;
+        }
+
+        .btn-moon {
+            background-color: var(--accent-luna) !important;
+            color: #0b131e !important;
+            font-weight: 700;
             border: none;
-            font-weight: 600;
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
         }
-        .btn-beigecito:hover {
-            background-color: #ffffff;
-            color: #0b131e;
+
+        .btn-moon:hover {
+            background-color: #ffffff !important;
+            color: #0b131e !important;
         }
+
         .text-muted-moon {
             color: var(--texto-suave) !important;
+        }
+
+        .req-list {
+            font-size: 0.8rem;
+            color: var(--texto-suave);
+            margin-top: 6px;
+            padding-left: 20px;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="text-center mb-4">
-                <a href="../index.php" class="brand-text fw-bold fs-2">
-                    <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence
-                </a>
-            </div>
-            <div class="card card-auth p-4 shadow-lg">
-                <h4 class="brand-text mb-3 text-center">Crear una cuenta</h4>
+<div class="card-registro">
+    <div class="text-center mb-4">
+        <a href="../index.php" class="brand-text fs-3 fw-bold d-block mb-1">
+            <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence
+        </a>
+        <p class="text-muted-moon small">Crea tu cuenta para gestionar tus compras</p>
+    </div>
 
-                <?php if (!empty($error)): ?>
-                    <div class="alert alert-danger py-2 small"><?= $error ?></div>
-                <?php endif; ?>
+    <!-- Alertas de Error o Éxito -->
+    <?php if (!empty($error_msg)): ?>
+        <div class="alert alert-danger p-3 small text-center mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> <?= htmlspecialchars($error_msg) ?>
+        </div>
+    <?php endif; ?>
 
-                <?php if (!empty($exito)): ?>
-                    <div class="alert alert-success py-2 small"><?= $exito ?></div>
-                <?php endif; ?>
-
-                <form method="POST" action="">
-                    <div class="mb-3">
-                        <label class="form-label text-muted-moon small">Nombre completo</label>
-                        <input type="text" name="nombre" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted-moon small">Correo electrónico</label>
-                        <input type="email" name="email" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted-moon small">Contraseña</label>
-                        <input type="password" name="password" class="form-control" required>
-                    </div>
-                    <button type="submit" class="btn btn-beigecito w-100 py-2 mt-2">Registrarse</button>
-                </form>
-
-                <div class="text-center mt-3">
-                    <a href="../index.php" class="text-muted-moon small text-decoration-none"><i class="bi bi-arrow-left me-1"></i> Volver a la tienda</a>
-                </div>
+    <?php if (!empty($exito_msg)): ?>
+        <div class="alert alert-success p-3 small text-center mb-4">
+            <i class="bi bi-check-circle-fill me-1"></i> <?= htmlspecialchars($exito_msg) ?>
+            <div class="mt-2">
+                <a href="login.php" class="btn btn-sm btn-outline-success fw-bold">Iniciar Sesión Ahora</a>
             </div>
         </div>
+    <?php else: ?>
+
+        <form method="POST" action="">
+            <div class="mb-3">
+                <label class="form-label text-white fw-medium">Nombre Completo</label>
+                <input type="text" class="form-control" name="nombre" placeholder="Ej. Ana María" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label text-white fw-medium">Correo Electrónico</label>
+                <input type="email" class="form-control" name="email" placeholder="tu@email.com" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-white fw-medium">Contraseña Segura</label>
+                <input type="password" 
+                       class="form-control" 
+                       name="password" 
+                       placeholder="••••••••" 
+                       required 
+                       pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}"
+                       title="Debe contener al menos 8 caracteres, una letra mayúscula, una minúscula y un número.">
+                
+                <ul class="req-list">
+                    <li>Mínimo 8 caracteres</li>
+                    <li>Al menos una letra mayúscula (A-Z)</li>
+                    <li>Al menos una letra minúscula (a-z)</li>
+                    <li>Al menos un número (0-9)</li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn btn-moon w-100 fw-bold shadow">
+                <i class="bi bi-person-plus-fill me-1"></i> Crear Cuenta
+            </button>
+        </form>
+
+    <?php endif; ?>
+
+    <div class="text-center mt-4 pt-3 border-top border-secondary">
+        <span class="text-muted-moon small">¿Ya tienes una cuenta?</span>
+        <a href="login.php" class="brand-text fw-bold small ms-1">Inicia Sesión</a>
     </div>
 </div>
 

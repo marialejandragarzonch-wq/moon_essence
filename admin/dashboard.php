@@ -215,11 +215,21 @@ try {
     </div>
 
     <!-- Menú con todas las secciones organizadas -->
-    <div class="d-flex flex-wrap gap-2 justify-content-center">
+    <div class="d-flex flex-wrap gap-2 justify-content-center align-items-center">
         <a href="dashboard.php" class="btn-nav active"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a>
         <a href="admin_productos.php" class="btn-nav"><i class="bi bi-box-seam me-1"></i> Productos</a>
         <a href="admin_categorias.php" class="btn-nav"><i class="bi bi-tag me-1"></i> Categorías</a>
         <a href="reportes.php" class="btn-nav"><i class="bi bi-bar-chart-line me-1"></i> Reportes Analíticos</a>
+        
+        <!-- NUEVO: Enlace Quiénes Somos -->
+        <a href="quienes_somos.php" class="btn-nav">
+            <i class="bi bi-people me-1"></i> Quiénes Somos
+        </a>
+
+        <!-- NUEVO: Botón Tratamiento de Datos (Abre el Modal) -->
+        <button type="button" class="btn-nav bg-transparent" data-bs-toggle="modal" data-bs-target="#modalTratamientoDatos">
+            <i class="bi bi-shield-lock me-1"></i> Tratamiento de datos
+        </button>
     </div>
 </div>
 
@@ -368,6 +378,28 @@ try {
 
     </div>
 
+</div>
+
+<!-- NUEVO: Modal de Tratamiento de Datos -->
+<div class="modal fade" id="modalTratamientoDatos" tabindex="-1" aria-labelledby="modalTratamientoDatosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: #1e293b; border: 1px solid rgba(245, 230, 211, 0.18); color: #f8fafc; border-radius: 16px;">
+            <div class="modal-header border-bottom" style="border-color: rgba(245, 230, 211, 0.12) !important;">
+                <h5 class="modal-title fw-bold" id="modalTratamientoDatosLabel" style="color: #f5e6d3;">
+                    <i class="bi bi-shield-check-fill me-2"></i> Tratamiento de datos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-start">
+                <p class="m-0" style="color: #cbd5e1; line-height: 1.6; font-size: 0.95rem;">
+                    El presente proyecto tiene fines exclusivamente académicos. Los datos utilizados durante el desarrollo, las pruebas y la demostración del sistema son ficticios y fueron creados únicamente con fines de simulación. El sistema no recolecta, almacena ni procesa datos personales reales de estudiantes, docentes o terceros.
+                </p>
+            </div>
+            <div class="modal-footer border-top" style="border-color: rgba(245, 230, 211, 0.12) !important;">
+                <button type="button" class="btn btn-sm px-4 fw-bold" style="background-color: #f5e6d3; color: #0f172a;" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
