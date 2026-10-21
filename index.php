@@ -16,6 +16,19 @@ try {
 $cat_seleccionada = $_GET['cat'] ?? 'todas';
 $cat_limpia = trim(strtolower($cat_seleccionada));
 
+// Obtener categorías con imagen representativa para el menú superior
+try {
+    $stmt_cat = $pdo->query("
+        SELECT c.*, 
+               (SELECT imagen FROM productos p WHERE p.id_categoria = c.id_categoria AND p.imagen IS NOT NULL AND p.imagen != '' LIMIT 1) as foto_representativa
+        FROM categorias c 
+        ORDER BY c.nombre_categoria ASC
+    ");
+    $categorias = $stmt_cat->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $categorias = [];
+}
+
 // Obtener todos los productos de la base de datos con su categoría
 $productos = [];
 try {
@@ -43,225 +56,566 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moon Essence - Encuentra tu Estilo</title>
+    <title>Moon Essence - Tienda Oficial</title>
+    
+    <!-- Fuentes Elegantes Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
     <style>
         :root {
-            --bg-cielo: #0b131e;
-            --bg-tarjeta: #1a2332;
-            --accent-luna: #f9e8d0;
-            --texto-suave: #aebbc9;
+            --bg-principal: #0b131e;        /* Azul nocturno original */
+            --bg-darker: #05090e;           /* Azul más oscuro para nav/footer */
+            --azul-claro: #c4dafa;          /* Azul pastel de acento */
+            --accent-beige: #f5e6d3;        /* Beige botón carrito original */
+            --verde-precio: #2ecc71;        /* Verde precio original */
+            --card-bg: #111a26;             /* Tarjeta fondo oscuro original */
+            --border-card: #1c2a3a;
+            --font-editorial: 'Playfair Display', serif;
+            --font-sans: 'Montserrat', sans-serif;
         }
+
         body {
-            background-color: var(--bg-cielo);
+            background-color: var(--bg-principal);
             color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: var(--font-sans);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
-        .navbar-moon {
-            background-color: rgba(5, 9, 14, 0.95);
-            border-bottom: 1px solid #233044;
-            backdrop-filter: blur(8px);
+
+        h1, h2, h3, h4, .brand-logo, .footer-title, .cat-card-header {
+            font-family: var(--font-editorial);
         }
-        .brand-text {
-            color: var(--accent-luna) !important;
-            letter-spacing: 1.5px;
+
+        /* Banner Promocional Descuento */
+        .promo-bar {
+            background-color: var(--azul-claro);
+            color: #0b131e;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-align: center;
+            padding: 6px 0;
+            letter-spacing: 1px;
+        }
+
+        /* Navegación Estilo Koaj */
+        .navbar-koaj {
+            background-color: var(--bg-darker);
+            border-bottom: 1px solid rgba(196, 218, 250, 0.2);
+            padding: 12px 0;
+        }
+
+        .brand-logo {
+            font-weight: 700;
+            font-size: 1.6rem;
+            color: #ffffff !important;
+            letter-spacing: 2px;
             text-decoration: none;
         }
-        .hero-section {
-            background: linear-gradient(rgba(11, 19, 30, 0.7), rgba(11, 19, 30, 0.9)), url('uploads/hero-bg.jpg') center/cover;
-            padding: 80px 0;
-            border-bottom: 1px solid #233044;
-            text-align: center;
+
+        .nav-link-koaj {
+            color: #ffffff !important;
+            font-weight: 600;
+            font-size: 0.88rem;
+            letter-spacing: 1px;
+            padding: 8px 14px !important;
+            transition: color 0.2s ease;
         }
-        .card-producto {
-            background-color: var(--bg-tarjeta);
-            border: 1px solid #28374d;
-            border-radius: 14px;
-            transition: transform 0.2s ease;
+
+        .nav-link-koaj:hover {
+            color: var(--azul-claro) !important;
         }
-        .card-producto:hover {
+
+        .icon-btn {
+            color: #ffffff;
+            font-size: 1.25rem;
+            text-decoration: none;
+            position: relative;
+            padding: 4px 8px;
+            transition: color 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            color: var(--azul-claro);
+        }
+
+        /* Megamenú Dropdown */
+        .dropdown-menu-custom {
+            background-color: var(--bg-darker);
+            border: 1px solid var(--azul-claro);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .dropdown-item-custom {
+            color: #ffffff;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: block;
+            border-radius: 4px;
+        }
+
+        .dropdown-item-custom:hover {
+            background-color: rgba(196, 218, 250, 0.15);
+            color: var(--azul-claro);
+        }
+
+        /* TARJETAS DE CATEGORÍA SUPERIORES */
+        .cat-card-frame {
+            border: 3px solid var(--azul-claro);
+            background-color: #05090e;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            height: 360px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            transition: transform 0.25s ease;
+            text-decoration: none;
+        }
+
+        .cat-card-frame:hover {
             transform: translateY(-5px);
         }
-        .img-catalogo {
+
+        .cat-card-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 3;
+            background: linear-gradient(180deg, rgba(11, 19, 30, 0.95) 0%, rgba(11, 19, 30, 0) 100%);
+            padding: 14px 12px;
+            color: var(--azul-claro);
+            font-weight: 700;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cat-card-img {
             width: 100%;
-            height: 280px;
+            height: 100%;
             object-fit: cover;
-            border-top-left-radius: 14px;
-            border-top-right-radius: 14px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
-        .btn-beigecito {
-            background-color: var(--accent-luna);
+
+        .cat-card-footer {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            z-index: 3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .price-badge-blue {
+            background-color: var(--azul-claro);
             color: #0b131e;
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 6px 14px;
+            border-radius: 4px;
+        }
+
+        .btn-plus-blue {
+            background-color: var(--azul-claro);
+            color: #0b131e;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: bold;
             border: none;
-            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
         }
-        .btn-beigecito:hover {
+
+        .btn-plus-blue:hover {
             background-color: #ffffff;
+            color: var(--bg-principal);
+            transform: scale(1.1);
+        }
+
+        /* TARJETAS DE PRODUCTO CON SELECTOR DE TALLAS Y BOTÓN BEIGE */
+        .card-product-original {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.25s ease;
+        }
+
+        .card-product-original:hover {
+            transform: translateY(-4px);
+        }
+
+        .card-img-container {
+            height: 300px;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            background-color: #081018;
+        }
+
+        .card-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-img-container .img-principal {
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-img-container .img-secundaria {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 0.35s ease-in-out;
+        }
+
+        .card-img-container:hover .img-secundaria {
+            opacity: 1;
+        }
+
+        .card-body-original {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-grow: 1;
+        }
+
+        .prod-cat-title {
+            color: #8fa0b5;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+        }
+
+        .prod-name {
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .prod-price {
+            color: var(--verde-precio);
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+
+        .select-talla-label {
+            color: #8fa0b5;
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .select-talla {
+            background-color: #0a121d;
+            color: #ffffff;
+            border: 1px solid #223347;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .btn-add-cart-original {
+            background-color: var(--accent-beige);
             color: #0b131e;
+            font-weight: 700;
+            border: none;
+            border-radius: 6px;
+            padding: 10px;
+            width: 100%;
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity 0.2s ease;
         }
-        .text-muted-moon {
-            color: var(--texto-suave) !important;
+
+        .btn-add-cart-original:hover {
+            opacity: 0.9;
         }
+
+        /* FOOTER COMERCIAL */
         footer {
-            background-color: #05090e;
-            border-top: 1px solid #233044;
-            color: var(--texto-suave);
+            background-color: var(--bg-darker);
+            border-top: 1px solid rgba(196, 218, 250, 0.2);
+            color: #ffffff;
             margin-top: auto;
+            padding-top: 40px;
+            padding-bottom: 20px;
+        }
+
+        .footer-title {
+            color: var(--azul-claro);
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 14px;
+            letter-spacing: 1px;
+        }
+
+        .footer-link {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: block;
+            margin-bottom: 8px;
+            transition: color 0.2s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--azul-claro);
+        }
+
+        .payment-icons i {
+            font-size: 1.8rem;
+            color: var(--azul-claro);
+            margin-right: 12px;
         }
     </style>
 </head>
 <body>
 
-<!-- Navbar de la Tienda -->
-<nav class="navbar navbar-expand-lg navbar-moon sticky-top py-3">
+<!-- Banner Promocional Descuento -->
+<div class="promo-bar">
+    <i class="bi bi-tag-fill me-1"></i> ¡OBTÉN UN 20% DE DESCUENTO AL REGISTRARTE O FORMAR PARTE DE NUESTRA COMUNIDAD!
+</div>
+
+<!-- Navegación Estilo Koaj -->
+<nav class="navbar navbar-expand-lg navbar-koaj sticky-top">
     <div class="container">
-        <a class="navbar-brand fw-bold fs-3 brand-text" href="index.php">
-            <i class="bi bi-moon-stars-fill me-2"></i>Moon Essence
+        
+        <!-- Logo -->
+        <a class="navbar-brand d-flex align-items-center me-4" href="index.php">
+            <i class="bi bi-moon-stars-fill me-2" style="color: var(--azul-claro);"></i>
+            <span class="brand-logo">MOON ESSENCE</span>
         </a>
-        <div class="d-flex align-items-center gap-3">
-            <a href="quienes_somos.php" class="btn btn-sm btn-outline-light">
-                <i class="bi bi-people me-1"></i> Quiénes Somos
-            </a>
 
-            <!-- Opción Tratamiento de Datos (Abre el Modal) -->
-            <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#modalTratamientoDatos">
-                <i class="bi bi-shield-lock me-1"></i> Tratamiento de datos
-            </button>
+        <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navKoaj">
+            <i class="bi bi-list fs-2"></i>
+        </button>
 
-            <?php if (isset($_SESSION['usuario_id']) || isset($_SESSION['usuario'])): ?>
-                <!-- Estado cuando SÍ hay sesión iniciada -->
-                <span class="text-muted-moon small d-none d-md-inline">
-                    <i class="bi bi-person-circle me-1"></i>
-                    Hola, <?= htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['usuario'] ?? 'Usuario') ?>
-                </span>
-                <a href="auth/logout.php" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
+        <div class="collapse navbar-collapse" id="navKoaj">
+            
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link nav-link-koaj" href="index.php">
+                        <i class="bi bi-house-door me-1"></i> INICIO
+                    </a>
+                </li>
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link nav-link-koaj dropdown-toggle" href="#" id="dropMujer" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        MUJER
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="dropMujer">
+                        <li><a class="dropdown-item-custom fw-bold" href="index.php?cat=todas">Ver Todo</a></li>
+                        <li><hr class="dropdown-divider border-secondary"></li>
+                        <?php foreach ($categorias as $cat): ?>
+                            <li>
+                                <a class="dropdown-item-custom" href="index.php?cat=<?= strtolower($cat['nombre_categoria']) ?>">
+                                    <?= htmlspecialchars($cat['nombre_categoria']) ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link nav-link-koaj" href="quienes_somos.php">QUIÉNES SOMOS</a>
+                </li>
+            </ul>
+
+            <!-- Iconos de Navegación Derechos -->
+            <div class="d-flex align-items-center gap-3">
+                
+                <a href="index.php" class="icon-btn" title="Buscar productos">
+                    <i class="bi bi-search"></i>
                 </a>
-            <?php else: ?>
-                <!-- Estado cuando NO hay sesión iniciada -->
-                <a href="auth/login.php" class="btn btn-sm btn-outline-light">Iniciar Sesión</a>
-                <a href="auth/registro.php" class="btn btn-sm btn-beigecito">Registrarse</a>
-            <?php endif; ?>
 
-            <a href="carrito/ver.php" class="btn btn-sm btn-outline-warning"><i class="bi bi-cart-fill me-1"></i> Carrito</a>
+                <a href="#" class="icon-btn" data-bs-toggle="modal" data-bs-target="#modalFavoritos" title="Mis Favoritos">
+                    <i class="bi bi-heart"></i>
+                </a>
+
+                <a href="carrito/ver.php" class="icon-btn" title="Carrito de Compras">
+                    <i class="bi bi-bag"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                        0
+                    </span>
+                </a>
+
+                <a href="auth/login.php" class="btn btn-sm px-3 fw-bold ms-2" style="background-color: var(--azul-claro); color: #0b131e;">
+                    <i class="bi bi-person-circle me-1"></i> Ingresar
+                </a>
+
+            </div>
+
         </div>
     </div>
 </nav>
 
-<!-- Hero Section -->
-<div class="hero-section">
-    <div class="container">
-        <h1 class="display-5 brand-text fw-bold mb-3">Define Tu Estilo</h1>
-        <p class="text-muted-moon lead">Explora colecciones exclusivas diseñadas para realzar tu elegancia.</p>
-    </div>
-</div>
+<main class="container my-5">
 
-<!-- Menú de Categorías -->
-<div class="container mt-4">
-    <div class="d-flex flex-wrap gap-2 justify-content-center">
-        <a href="index.php?cat=todas" class="btn btn-sm <?= ($cat_limpia === 'todas') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Todas</a>
-        <a href="index.php?cat=chaquetas" class="btn btn-sm <?= ($cat_limpia === 'chaquetas') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Chaquetas</a>
-        <a href="index.php?cat=faldas" class="btn btn-sm <?= ($cat_limpia === 'faldas') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Faldas</a>
-        <a href="index.php?cat=básicos" class="btn btn-sm <?= ($cat_limpia === 'básicos' || $cat_limpia === 'basicos') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Básicos</a>
-        <a href="index.php?cat=sastre" class="btn btn-sm <?= ($cat_limpia === 'sastre') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Sastre</a>
-        <a href="index.php?cat=calzado" class="btn btn-sm <?= ($cat_limpia === 'calzado') ? 'btn-beigecito' : 'btn-outline-secondary text-white' ?>">Calzado</a>
-    </div>
-</div>
+    <!-- SECCIÓN: CATEGORÍas PRINCIPALES (SÓLO SE MUESTRA EN EL INICIO / "TODAS") -->
+    <?php if ($cat_limpia === 'todas' || empty($cat_limpia)): ?>
+        <div class="mb-5">
+            <h3 class="fw-bold mb-4 d-flex align-items-center" style="color: var(--azul-claro);">
+                <i class="bi bi-grid-fill me-2"></i> CATEGORÍAS PRINCIPALES
+            </h3>
 
-<!-- Catálogo de Productos -->
-<div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="brand-text m-0">Colección Completa</h3>
-        <span class="text-muted-moon small"><?= count($productos) ?> Prendas disponibles</span>
-    </div>
-
-    <?php if (empty($productos)): ?>
-        <div class="text-center py-5">
-            <i class="bi bi-shop fs-1 text-muted-moon"></i>
-            <p class="text-muted-moon mt-3">No hay productos en esta categoría por el momento.</p>
-        </div>
-    <?php else: ?>
-        <div class="row g-4">
-            <?php foreach ($productos as $index_prod => $prod): ?>
-                <div class="col-md-4 col-lg-3">
-                    <div class="card card-producto h-100 shadow-sm">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
+                <?php if (count($categorias) > 0): ?>
+                    <?php foreach ($categorias as $c): ?>
                         <?php 
-                            $img_db = trim($prod['imagen'] ?? '');
-                            $primera_imagen = "";
-                            $segunda_imagen = "";
+                            $nombre_cat = $c['nombre_categoria'] ?? '';
+                            $foto_cat = !empty($c['foto_representativa']) 
+                                        ? 'uploads/' . $c['foto_representativa'] 
+                                        : 'https://via.placeholder.com/300x400/05090e/c4dafa?text=' . urlencode($nombre_cat);
+                        ?>
+                        <div class="col">
+                            <a href="index.php?cat=<?= strtolower($nombre_cat) ?>" class="cat-card-frame">
+                                <div class="cat-card-header">
+                                    <?= htmlspecialchars($nombre_cat) ?> ✦
+                                </div>
 
-                            preg_match('/^(\d+)/', $img_db, $matches);
-                            if (!empty($matches[1])) {
-                                $prefijo = $matches[1];
-                                $archivos = scandir('uploads');
-                                foreach ($archivos as $archivo) {
-                                    if ($archivo === '.' || $archivo === '..') continue;
-                                    if (strpos($archivo, $prefijo) === 0) {
-                                        if (strpos($archivo, '_1') !== false || (strpos($archivo, '_2') === false && empty($primera_imagen))) {
-                                            if (empty($primera_imagen)) {
-                                                $primera_imagen = "uploads/" . $archivo;
-                                            }
+                                <img src="<?= htmlspecialchars($foto_cat) ?>" class="cat-card-img" alt="<?= htmlspecialchars($nombre_cat) ?>" onerror="this.src='uploads/default.png'">
+
+                                <div class="cat-card-footer">
+                                    <span class="price-badge-blue">Ver Prendas</span>
+                                    <span class="btn-plus-blue">+</span>
+                                </div>
+                            </a>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="col-12">
+                        <p class="text-white-50">No hay categorías registradas en la base de datos.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- SECCIÓN: CATÁLOGO DE PRODUCTOS -->
+    <div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0" style="color: #ffffff;">
+                <?= ($cat_limpia !== 'todas' && !empty($cat_limpia)) ? 'Productos Filtrados: ' . ucfirst($cat_limpia) : 'Colección Completa' ?>
+            </h3>
+            <?php if ($cat_limpia !== 'todas' && !empty($cat_limpia)): ?>
+                <a href="index.php?cat=todas" class="btn btn-sm px-3 fw-bold" style="background-color: var(--azul-claro); color: #0b131e;">
+                    <i class="bi bi-arrow-left me-1"></i> Volver a todas las categorías
+                </a>
+            <?php endif; ?>
+        </div>
+
+        <?php if (empty($productos)): ?>
+            <div class="text-center py-5">
+                <i class="bi bi-box-seam fs-1 text-white-50 mb-3 d-block"></i>
+                <h4 class="fw-bold">No se encontraron productos en esta categoría</h4>
+                <a href="index.php?cat=todas" class="btn btn-sm mt-3 px-4 fw-bold" style="background-color: var(--azul-claro); color: #0b131e;">Ver catálogo general</a>
+            </div>
+        <?php else: ?>
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+                <?php foreach ($productos as $prod): ?>
+                    <?php
+                        // Lógica exacta de búsqueda de imágenes múltiples para hover
+                        $img_db = trim($prod['imagen'] ?? '');
+                        $primera_imagen = "";
+                        $segunda_imagen = "";
+
+                        preg_match('/^(\d+)/', $img_db, $matches);
+                        if (!empty($matches[1])) {
+                            $prefijo = $matches[1];
+                            $archivos = scandir('uploads');
+                            foreach ($archivos as $archivo) {
+                                if ($archivo === '.' || $archivo === '..') continue;
+                                if (strpos($archivo, $prefijo) === 0) {
+                                    if (strpos($archivo, '_1') !== false || (strpos($archivo, '_2') === false && empty($primera_imagen))) {
+                                        if (empty($primera_imagen)) {
+                                            $primera_imagen = "uploads/" . $archivo;
                                         }
-                                        if (strpos($archivo, '_2') !== false || strpos($archivo, ' 2') !== false) {
-                                            $segunda_imagen = "uploads/" . $archivo;
-                                        }
+                                    }
+                                    if (strpos($archivo, '_2') !== false || strpos($archivo, ' 2') !== false) {
+                                        $segunda_imagen = "uploads/" . $archivo;
                                     }
                                 }
                             }
+                        }
 
-                            if (empty($primera_imagen) && !empty($img_db) && file_exists("uploads/" . $img_db)) {
-                                $primera_imagen = "uploads/" . $img_db;
-                            }
+                        if (empty($primera_imagen) && !empty($img_db) && file_exists("uploads/" . $img_db)) {
+                            $primera_imagen = "uploads/" . $img_db;
+                        }
+                        if (empty($segunda_imagen)) {
+                            $segunda_imagen = $primera_imagen;
+                        }
+
+                        $nombre_prod = $prod['nombre_producto'] ?? '';
+                        $cat_nombre  = $prod['nombre_categoria'] ?? 'Prenda';
+                        $precio_prod = $prod['precio'] ?? 0;
+                    ?>
+                    <div class="col">
+                        <div class="card-product-original">
                             
-                            $carousel_id = "carouselProd" . $index_prod;
-                        ?>
-
-                        <?php if (!empty($primera_imagen) && !empty($segunda_imagen)): ?>
-                            <div id="<?= $carousel_id ?>" class="carousel slide" data-bs-ride="carousel">
-                                <div class="carousel-inner">
-                                    <div class="carousel-item active">
-                                        <img src="<?= htmlspecialchars($primera_imagen) ?>" class="img-catalogo" alt="Foto 1">
-                                    </div>
-                                    <div class="carousel-item">
-                                        <img src="<?= htmlspecialchars($segunda_imagen) ?>" class="img-catalogo" alt="Foto 2">
-                                    </div>
-                                </div>
-                                <button class="carousel-control-prev" type="button" data-bs-target="#<?= $carousel_id ?>" data-bs-slide="prev">
-                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Anterior</span>
-                                </button>
-                                <button class="carousel-control-next" type="button" data-bs-target="#<?= $carousel_id ?>" data-bs-slide="next">
-                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Siguiente</span>
-                                </button>
+                            <!-- Contenedor de fotos con animación de hover -->
+                            <div class="card-img-container">
+                                <img src="<?= htmlspecialchars($primera_imagen) ?>" class="img-principal" alt="Foto 1" onerror="this.src='uploads/default.png'">
+                                <img src="<?= htmlspecialchars($segunda_imagen) ?>" class="img-secundaria" alt="Foto 2" onerror="this.src='uploads/default.png'">
                             </div>
-                        <?php elseif (!empty($primera_imagen)): ?>
-                            <img src="<?= htmlspecialchars($primera_imagen) ?>" alt="Prenda" class="img-catalogo">
-                        <?php else: ?>
-                            <div class="img-catalogo bg-dark d-flex align-items-center justify-content-center text-muted-moon">Sin imagen</div>
-                        <?php endif; ?>
-                        
-                        <div class="card-body d-flex flex-column">
-                            <span class="text-muted-moon small mb-1"><?= htmlspecialchars($prod['nombre_categoria'] ?? 'MOON STORE') ?></span>
-                            <h5 class="card-title fw-bold text-white mb-2"><?= htmlspecialchars($prod['nombre_producto'] ?? '') ?></h5>
-                            <p class="text-success fw-bold fs-5 mb-2">$<?= number_format($prod['precio'] ?? 0, 2, ',', '.') ?></p>
-                            
-                            <?php 
-                                $nombreProd = strtolower($prod['nombre_producto'] ?? '');
-                                $nombreCat = strtolower($prod['nombre_categoria'] ?? '');
-                                $esCalzado = (strpos($nombreCat, 'calzado') !== false || strpos($nombreProd, 'tenis') !== false || strpos($nombreProd, 'bota') !== false || strpos($nombreProd, 'zapatilla') !== false || strpos($nombreProd, 'zapato') !== false);
-                            ?>
 
-                            <form action="carrito/agregar.php" method="POST" class="mt-auto">
-                                <input type="hidden" name="id_producto" value="<?= $prod['id_producto'] ?>">
-                                
-                                <div class="mb-3">
-                                    <label class="text-muted-moon small mb-1">Selecciona la Talla:</label>
-                                    <select name="talla" class="form-select form-select-sm bg-dark text-white border-secondary" required>
+                            <!-- Cuerpo de la tarjeta con tallas y botón beige -->
+                            <div class="card-body-original">
+                                <div>
+                                    <div class="prod-cat-title"><?= htmlspecialchars($cat_nombre) ?></div>
+                                    <div class="prod-name"><?= htmlspecialchars($nombre_prod) ?></div>
+                                    <div class="prod-price">$<?= number_format($precio_prod, 2, ',', '.') ?></div>
+                                </div>
+
+                                <?php 
+                                    $nombreProdLower = strtolower($nombre_prod);
+                                    $nombreCatLower = strtolower($cat_nombre);
+                                    $esCalzado = (strpos($nombreCatLower, 'calzado') !== false || strpos($nombreProdLower, 'tenis') !== false || strpos($nombreProdLower, 'bota') !== false || strpos($nombreProdLower, 'zapatilla') !== false || strpos($nombreProdLower, 'zapato') !== false);
+                                ?>
+
+                                <form action="carrito/agregar.php" method="POST">
+                                    <input type="hidden" name="id_producto" value="<?= $prod['id_producto'] ?>">
+                                    
+                                    <label class="select-talla-label">Selecciona la Talla:</label>
+                                    <select name="talla" class="select-talla" required>
                                         <option value="" selected disabled>Elige una talla</option>
                                         <?php 
                                             if ($esCalzado) {
@@ -269,50 +623,125 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                                             } else {
                                                 $tallas = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
                                             }
-                                            
                                             foreach ($tallas as $t) {
                                                 echo "<option value=\"$t\">Talla $t</option>";
                                             }
                                         ?>
                                     </select>
-                                </div>
-                                
-                                <button type="submit" class="btn btn-beigecito w-100 btn-sm py-2">
-                                    <i class="bi bi-cart-plus me-1"></i> Agregar al Carrito
-                                </button>
-                            </form>
+
+                                    <button type="submit" class="btn-add-cart-original">
+                                        <i class="bi bi-cart3"></i> Agregar al Carrito
+                                    </button>
+                                </form>
+                            </div>
+
                         </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-</div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
 
-<footer class="py-4 mt-auto">
-    <div class="container text-center">
-        <p class="brand-text fw-bold mb-1 fs-5">Moon Essence</p>
-        <p class="small m-0">© 2026 Todos los derechos reservados.</p>
+</main>
+
+<!-- PIE DE PÁGINA (FOOTER) COMERCIAL -->
+<footer>
+    <div class="container">
+        <div class="row g-4 mb-4">
+            
+            <div class="col-md-4">
+                <h5 class="footer-title">MOON ESSENCE</h5>
+                <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6;">
+                    Diseñamos prendas con la esencia de la elegancia y versatilidad nocturna. Calidad premium para expresar tu autenticidad.
+                </p>
+                <a href="quienes_somos.php" class="footer-link fw-bold">
+                    <i class="bi bi-arrow-right-circle me-1"></i> Conoce más en Quiénes Somos
+                </a>
+            </div>
+
+            <div class="col-md-4">
+                <h5 class="footer-title">AYUDA Y POLÍTICAS</h5>
+                <a href="#" class="footer-link" data-bs-toggle="modal" data-bs-target="#modalTratamientoDatos">
+                    <i class="bi bi-shield-check me-1"></i> Política de tratamiento de datos
+                </a>
+                <a href="quienes_somos.php" class="footer-link">
+                    <i class="bi bi-info-circle me-1"></i> Términos y condiciones
+                </a>
+            </div>
+
+            <div class="col-md-4">
+                <h5 class="footer-title">CONTACTO</h5>
+                <p class="mb-2" style="font-size: 0.85rem; color: #cbd5e1;">
+                    <i class="bi bi-envelope-fill me-2" style="color: var(--azul-claro);"></i>
+                    contacto@moonessence.com
+                </p>
+                
+                <h6 class="footer-title mt-4 mb-2">MÉTODOS DE PAGO</h6>
+                <div class="payment-icons">
+                    <i class="bi bi-credit-card-fill" title="Tarjeta de Crédito"></i>
+                    <i class="bi bi-paypal" title="PayPal"></i>
+                    <i class="bi bi-cash-stack" title="Efectivo / Transferencia"></i>
+                </div>
+            </div>
+
+        </div>
+
+        <hr style="border-color: rgba(196, 218, 250, 0.2);">
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 pt-2">
+            <p class="m-0 small text-white-50">
+                © 2026 MOON ESSENCE. Todos los derechos reservados.
+            </p>
+            <div class="d-flex gap-3 fs-5" style="color: var(--azul-claro);">
+                <a href="#" class="text-decoration-none text-reset"><i class="bi bi-instagram"></i></a>
+                <a href="#" class="text-decoration-none text-reset"><i class="bi bi-facebook"></i></a>
+                <a href="#" class="text-decoration-none text-reset"><i class="bi bi-tiktok"></i></a>
+            </div>
+        </div>
     </div>
 </footer>
+
+<!-- Modal de Favoritos -->
+<div class="modal fade" id="modalFavoritos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background-color: var(--bg-darker); border: 1px solid var(--azul-claro); color: #ffffff; border-radius: 12px;">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold" style="color: var(--azul-claro);">
+                    <i class="bi bi-heart-fill me-2"></i> Mis Favoritos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-person-lock fs-1 mb-3 d-block" style="color: var(--azul-claro);"></i>
+                <h5 class="fw-bold">Inicia sesión para guardar tus prendas</h5>
+                <p class="text-white-50" style="font-size: 0.85rem;">
+                    Debes tener una cuenta en Moon Essence para agregar productos a tu lista de favoritos.
+                </p>
+                <a href="auth/login.php" class="btn fw-bold mt-2 px-4" style="background-color: var(--azul-claro); color: #0b131e;">
+                    Iniciar Sesión / Registrarse
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal de Tratamiento de Datos -->
 <div class="modal fade" id="modalTratamientoDatos" tabindex="-1" aria-labelledby="modalTratamientoDatosLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background-color: #131c2a; border: 1px solid #213045; color: #ffffff; border-radius: 16px;">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title fw-bold" id="modalTratamientoDatosLabel" style="color: #f9e8d0;">
-                    <i class="bi bi-shield-check-fill me-2"></i> Tratamiento de datos
+        <div class="modal-content" style="background-color: var(--bg-darker); border: 1px solid var(--azul-claro); color: #ffffff; border-radius: 12px;">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold" id="modalTratamientoDatosLabel" style="color: var(--azul-claro);">
+                    <i class="bi bi-shield-check me-2"></i> Política de Tratamiento de Datos
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4 text-start">
-                <p class="m-0" style="color: #aebbc9; line-height: 1.6; font-size: 0.95rem;">
+                <p class="m-0" style="color: #cbd5e1; line-height: 1.6; font-size: 0.9rem;">
                     El presente proyecto tiene fines exclusivamente académicos. Los datos utilizados durante el desarrollo, las pruebas y la demostración del sistema son ficticios y fueron creados únicamente con fines de simulación. El sistema no recolecta, almacena ni procesa datos personales reales de estudiantes, docentes o terceros.
                 </p>
             </div>
-            <div class="modal-footer border-top border-secondary">
-                <button type="button" class="btn btn-sm px-4 fw-bold" style="background-color: #f9e8d0; color: #0b131e;" data-bs-dismiss="modal">Entendido</button>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-sm px-4 fw-bold" style="background-color: var(--azul-claro); color: #0b131e;" data-bs-dismiss="modal">Entendido</button>
             </div>
         </div>
     </div>
