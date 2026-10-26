@@ -12,11 +12,9 @@ try {
     die("Error de conexión a la base de datos.");
 }
 
-// Capturar la categoría seleccionada por la URL de forma limpia
 $cat_seleccionada = $_GET['cat'] ?? 'todas';
 $cat_limpia = trim(strtolower($cat_seleccionada));
 
-// Obtener categorías con imagen representativa para el menú superior
 try {
     $stmt_cat = $pdo->query("
         SELECT c.*, 
@@ -29,7 +27,6 @@ try {
     $categorias = [];
 }
 
-// Obtener todos los productos de la base de datos con su categoría
 $productos = [];
 try {
     $stmt = $pdo->query("SELECT p.*, c.nombre_categoria FROM productos p INNER JOIN categorias c ON p.id_categoria = c.id_categoria ORDER BY p.id_producto DESC");
@@ -38,7 +35,6 @@ try {
     $productos_totales = [];
 }
 
-// Filtrar los productos en PHP según el botón que se presionó
 if ($cat_limpia === 'todas' || empty($cat_limpia)) {
     $productos = $productos_totales;
 } else {
@@ -68,12 +64,12 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
     
     <style>
         :root {
-            --bg-principal: #0b131e;        /* Azul nocturno original */
-            --bg-darker: #05090e;           /* Azul más oscuro para nav/footer */
-            --azul-claro: #c4dafa;          /* Azul pastel de acento */
-            --accent-beige: #f5e6d3;        /* Beige botón carrito original */
-            --verde-precio: #2ecc71;        /* Verde precio original */
-            --card-bg: #111a26;             /* Tarjeta fondo oscuro original */
+            --bg-principal: #0b131e;        
+            --bg-darker: #05090e;           
+            --azul-claro: #c4dafa;          
+            --accent-beige: #f5e6d3;        
+            --verde-precio: #2ecc71;        
+            --card-bg: #111a26;             
             --border-card: #1c2a3a;
             --font-editorial: 'Playfair Display', serif;
             --font-sans: 'Montserrat', sans-serif;
@@ -92,7 +88,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             font-family: var(--font-editorial);
         }
 
-        /* Banner Promocional Descuento */
         .promo-bar {
             background-color: var(--azul-claro);
             color: #0b131e;
@@ -103,7 +98,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             letter-spacing: 1px;
         }
 
-        /* Navegación Estilo Koaj */
         .navbar-koaj {
             background-color: var(--bg-darker);
             border-bottom: 1px solid rgba(196, 218, 250, 0.2);
@@ -144,7 +138,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             color: var(--azul-claro);
         }
 
-        /* Megamenú Dropdown */
         .dropdown-menu-custom {
             background-color: var(--bg-darker);
             border: 1px solid var(--azul-claro);
@@ -166,7 +159,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             color: var(--azul-claro);
         }
 
-        /* TARJETAS DE CATEGORÍA SUPERIORES */
         .cat-card-frame {
             border: 3px solid var(--azul-claro);
             background-color: #05090e;
@@ -254,7 +246,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             transform: scale(1.1);
         }
 
-        /* TARJETAS DE PRODUCTO CON SELECTOR DE TALLAS Y BOTÓN BEIGE */
         .card-product-original {
             background-color: var(--card-bg);
             border: 1px solid var(--border-card);
@@ -370,7 +361,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             opacity: 0.9;
         }
 
-        /* FOOTER COMERCIAL */
         footer {
             background-color: var(--bg-darker);
             border-top: 1px solid rgba(196, 218, 250, 0.2);
@@ -410,16 +400,13 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
 </head>
 <body>
 
-<!-- Banner Promocional Descuento -->
 <div class="promo-bar">
     <i class="bi bi-tag-fill me-1"></i> ¡OBTÉN UN 20% DE DESCUENTO AL REGISTRARTE O FORMAR PARTE DE NUESTRA COMUNIDAD!
 </div>
 
-<!-- Navegación Estilo Koaj -->
 <nav class="navbar navbar-expand-lg navbar-koaj sticky-top">
     <div class="container">
         
-        <!-- Logo -->
         <a class="navbar-brand d-flex align-items-center me-4" href="index.php">
             <i class="bi bi-moon-stars-fill me-2" style="color: var(--azul-claro);"></i>
             <span class="brand-logo">MOON ESSENCE</span>
@@ -460,28 +447,25 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                 </li>
             </ul>
 
-            <!-- Iconos de Navegación Derechos -->
             <div class="d-flex align-items-center gap-3">
-                
-                <a href="index.php" class="icon-btn" title="Buscar productos">
-                    <i class="bi bi-search"></i>
-                </a>
-
-                <a href="#" class="icon-btn" data-bs-toggle="modal" data-bs-target="#modalFavoritos" title="Mis Favoritos">
-                    <i class="bi bi-heart"></i>
-                </a>
-
+                <a href="index.php" class="icon-btn" title="Buscar productos"><i class="bi bi-search"></i></a>
+                <a href="#" class="icon-btn" data-bs-toggle="modal" data-bs-target="#modalFavoritos" title="Mis Favoritos"><i class="bi bi-heart"></i></a>
                 <a href="carrito/ver.php" class="icon-btn" title="Carrito de Compras">
                     <i class="bi bi-bag"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
-                        0
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">0</span>
+                </a>
+
+                <?php if (isset($_SESSION['usuario_id']) || isset($_SESSION['usuario'])): ?>
+                    <span class="text-white small fw-bold ms-2">
+                        <i class="bi bi-person-circle me-1" style="color: var(--azul-claro);"></i>
+                        Hola, <?= htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['usuario'] ?? 'Usuario') ?>
                     </span>
-                </a>
-
-                <a href="auth/login.php" class="btn btn-sm px-3 fw-bold ms-2" style="background-color: var(--azul-claro); color: #0b131e;">
-                    <i class="bi bi-person-circle me-1"></i> Ingresar
-                </a>
-
+                    <a href="auth/logout.php" class="btn btn-sm px-3 fw-bold btn-outline-danger">Cerrar Sesión</a>
+                <?php else: ?>
+                    <a href="auth/login.php" class="btn btn-sm px-3 fw-bold ms-2" style="background-color: var(--azul-claro); color: #0b131e;">
+                        <i class="bi bi-person-circle me-1"></i> Ingresar
+                    </a>
+                <?php endif; ?>
             </div>
 
         </div>
@@ -490,7 +474,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
 
 <main class="container my-5">
 
-    <!-- SECCIÓN: CATEGORÍas PRINCIPALES (SÓLO SE MUESTRA EN EL INICIO / "TODAS") -->
     <?php if ($cat_limpia === 'todas' || empty($cat_limpia)): ?>
         <div class="mb-5">
             <h3 class="fw-bold mb-4 d-flex align-items-center" style="color: var(--azul-claro);">
@@ -498,39 +481,28 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             </h3>
 
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3">
-                <?php if (count($categorias) > 0): ?>
-                    <?php foreach ($categorias as $c): ?>
-                        <?php 
-                            $nombre_cat = $c['nombre_categoria'] ?? '';
-                            $foto_cat = !empty($c['foto_representativa']) 
-                                        ? 'uploads/' . $c['foto_representativa'] 
-                                        : 'https://via.placeholder.com/300x400/05090e/c4dafa?text=' . urlencode($nombre_cat);
-                        ?>
-                        <div class="col">
-                            <a href="index.php?cat=<?= strtolower($nombre_cat) ?>" class="cat-card-frame">
-                                <div class="cat-card-header">
-                                    <?= htmlspecialchars($nombre_cat) ?> ✦
-                                </div>
-
-                                <img src="<?= htmlspecialchars($foto_cat) ?>" class="cat-card-img" alt="<?= htmlspecialchars($nombre_cat) ?>" onerror="this.src='uploads/default.png'">
-
-                                <div class="cat-card-footer">
-                                    <span class="price-badge-blue">Ver Prendas</span>
-                                    <span class="btn-plus-blue">+</span>
-                                </div>
-                            </a>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="col-12">
-                        <p class="text-white-50">No hay categorías registradas en la base de datos.</p>
+                <?php foreach ($categorias as $c): ?>
+                    <?php 
+                        $nombre_cat = $c['nombre_categoria'] ?? '';
+                        $foto_cat = !empty($c['foto_representativa']) 
+                                    ? 'uploads/' . $c['foto_representativa'] 
+                                    : 'https://via.placeholder.com/300x400/05090e/c4dafa?text=' . urlencode($nombre_cat);
+                    ?>
+                    <div class="col">
+                        <a href="index.php?cat=<?= strtolower($nombre_cat) ?>" class="cat-card-frame">
+                            <div class="cat-card-header"><?= htmlspecialchars($nombre_cat) ?> ✦</div>
+                            <img src="<?= htmlspecialchars($foto_cat) ?>" class="cat-card-img" alt="<?= htmlspecialchars($nombre_cat) ?>" onerror="this.src='uploads/default.png'">
+                            <div class="cat-card-footer">
+                                <span class="price-badge-blue">Ver Prendas</span>
+                                <span class="btn-plus-blue">+</span>
+                            </div>
+                        </a>
                     </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </div>
         </div>
     <?php endif; ?>
 
-    <!-- SECCIÓN: CATÁLOGO DE PRODUCTOS -->
     <div>
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="fw-bold m-0" style="color: #ffffff;">
@@ -553,7 +525,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
                 <?php foreach ($productos as $prod): ?>
                     <?php
-                        // Lógica exacta de búsqueda de imágenes múltiples para hover
                         $img_db = trim($prod['imagen'] ?? '');
                         $primera_imagen = "";
                         $segunda_imagen = "";
@@ -566,9 +537,7 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                                 if ($archivo === '.' || $archivo === '..') continue;
                                 if (strpos($archivo, $prefijo) === 0) {
                                     if (strpos($archivo, '_1') !== false || (strpos($archivo, '_2') === false && empty($primera_imagen))) {
-                                        if (empty($primera_imagen)) {
-                                            $primera_imagen = "uploads/" . $archivo;
-                                        }
+                                        if (empty($primera_imagen)) $primera_imagen = "uploads/" . $archivo;
                                     }
                                     if (strpos($archivo, '_2') !== false || strpos($archivo, ' 2') !== false) {
                                         $segunda_imagen = "uploads/" . $archivo;
@@ -580,9 +549,7 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                         if (empty($primera_imagen) && !empty($img_db) && file_exists("uploads/" . $img_db)) {
                             $primera_imagen = "uploads/" . $img_db;
                         }
-                        if (empty($segunda_imagen)) {
-                            $segunda_imagen = $primera_imagen;
-                        }
+                        if (empty($segunda_imagen)) $segunda_imagen = $primera_imagen;
 
                         $nombre_prod = $prod['nombre_producto'] ?? '';
                         $cat_nombre  = $prod['nombre_categoria'] ?? 'Prenda';
@@ -590,14 +557,11 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                     ?>
                     <div class="col">
                         <div class="card-product-original">
-                            
-                            <!-- Contenedor de fotos con animación de hover -->
                             <div class="card-img-container">
                                 <img src="<?= htmlspecialchars($primera_imagen) ?>" class="img-principal" alt="Foto 1" onerror="this.src='uploads/default.png'">
                                 <img src="<?= htmlspecialchars($segunda_imagen) ?>" class="img-secundaria" alt="Foto 2" onerror="this.src='uploads/default.png'">
                             </div>
 
-                            <!-- Cuerpo de la tarjeta con tallas y botón beige -->
                             <div class="card-body-original">
                                 <div>
                                     <div class="prod-cat-title"><?= htmlspecialchars($cat_nombre) ?></div>
@@ -608,33 +572,26 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                                 <?php 
                                     $nombreProdLower = strtolower($nombre_prod);
                                     $nombreCatLower = strtolower($cat_nombre);
-                                    $esCalzado = (strpos($nombreCatLower, 'calzado') !== false || strpos($nombreProdLower, 'tenis') !== false || strpos($nombreProdLower, 'bota') !== false || strpos($nombreProdLower, 'zapatilla') !== false || strpos($nombreProdLower, 'zapato') !== false);
+                                    $esCalzado = (strpos($nombreCatLower, 'calzado') !== false || strpos($nombreProdLower, 'tenis') !== false || strpos($nombreProdLower, 'bota') !== false || strpos($nombreProdLower, 'zapatilla') !== false);
                                 ?>
 
                                 <form action="carrito/agregar.php" method="POST">
                                     <input type="hidden" name="id_producto" value="<?= $prod['id_producto'] ?>">
-                                    
                                     <label class="select-talla-label">Selecciona la Talla:</label>
                                     <select name="talla" class="select-talla" required>
                                         <option value="" selected disabled>Elige una talla</option>
                                         <?php 
-                                            if ($esCalzado) {
-                                                $tallas = ['35', '36', '37', '38', '39', '40', '41'];
-                                            } else {
-                                                $tallas = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-                                            }
+                                            $tallas = $esCalzado ? ['35', '36', '37', '38', '39', '40', '41'] : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
                                             foreach ($tallas as $t) {
                                                 echo "<option value=\"$t\">Talla $t</option>";
                                             }
                                         ?>
                                     </select>
-
                                     <button type="submit" class="btn-add-cart-original">
                                         <i class="bi bi-cart3"></i> Agregar al Carrito
                                     </button>
                                 </form>
                             </div>
-
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -644,11 +601,9 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
 
 </main>
 
-<!-- PIE DE PÁGINA (FOOTER) COMERCIAL -->
 <footer>
     <div class="container">
         <div class="row g-4 mb-4">
-            
             <div class="col-md-4">
                 <h5 class="footer-title">MOON ESSENCE</h5>
                 <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.6;">
@@ -658,7 +613,6 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                     <i class="bi bi-arrow-right-circle me-1"></i> Conoce más en Quiénes Somos
                 </a>
             </div>
-
             <div class="col-md-4">
                 <h5 class="footer-title">AYUDA Y POLÍTICAS</h5>
                 <a href="#" class="footer-link" data-bs-toggle="modal" data-bs-target="#modalTratamientoDatos">
@@ -668,14 +622,12 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                     <i class="bi bi-info-circle me-1"></i> Términos y condiciones
                 </a>
             </div>
-
             <div class="col-md-4">
                 <h5 class="footer-title">CONTACTO</h5>
                 <p class="mb-2" style="font-size: 0.85rem; color: #cbd5e1;">
                     <i class="bi bi-envelope-fill me-2" style="color: var(--azul-claro);"></i>
                     contacto@moonessence.com
                 </p>
-                
                 <h6 class="footer-title mt-4 mb-2">MÉTODOS DE PAGO</h6>
                 <div class="payment-icons">
                     <i class="bi bi-credit-card-fill" title="Tarjeta de Crédito"></i>
@@ -683,15 +635,10 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
                     <i class="bi bi-cash-stack" title="Efectivo / Transferencia"></i>
                 </div>
             </div>
-
         </div>
-
         <hr style="border-color: rgba(196, 218, 250, 0.2);">
-
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 pt-2">
-            <p class="m-0 small text-white-50">
-                © 2026 MOON ESSENCE. Todos los derechos reservados.
-            </p>
+            <p class="m-0 small text-white-50">© 2026 MOON ESSENCE. Todos los derechos reservados.</p>
             <div class="d-flex gap-3 fs-5" style="color: var(--azul-claro);">
                 <a href="#" class="text-decoration-none text-reset"><i class="bi bi-instagram"></i></a>
                 <a href="#" class="text-decoration-none text-reset"><i class="bi bi-facebook"></i></a>
@@ -701,43 +648,18 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
     </div>
 </footer>
 
-<!-- Modal de Favoritos -->
-<div class="modal fade" id="modalFavoritos" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="modalTratamientoDatos" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="background-color: var(--bg-darker); border: 1px solid var(--azul-claro); color: #ffffff; border-radius: 12px;">
             <div class="modal-header border-secondary">
                 <h5 class="modal-title fw-bold" style="color: var(--azul-claro);">
-                    <i class="bi bi-heart-fill me-2"></i> Mis Favoritos
+                    <i class="bi bi-shield-check me-2"></i> Política de Tratamiento de Datos
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body text-center py-4">
-                <i class="bi bi-person-lock fs-1 mb-3 d-block" style="color: var(--azul-claro);"></i>
-                <h5 class="fw-bold">Inicia sesión para guardar tus prendas</h5>
-                <p class="text-white-50" style="font-size: 0.85rem;">
-                    Debes tener una cuenta en Moon Essence para agregar productos a tu lista de favoritos.
-                </p>
-                <a href="auth/login.php" class="btn fw-bold mt-2 px-4" style="background-color: var(--azul-claro); color: #0b131e;">
-                    Iniciar Sesión / Registrarse
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de Tratamiento de Datos -->
-<div class="modal fade" id="modalTratamientoDatos" tabindex="-1" aria-labelledby="modalTratamientoDatosLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background-color: var(--bg-darker); border: 1px solid var(--azul-claro); color: #ffffff; border-radius: 12px;">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title fw-bold" id="modalTratamientoDatosLabel" style="color: var(--azul-claro);">
-                    <i class="bi bi-shield-check me-2"></i> Política de Tratamiento de Datos
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
             <div class="modal-body p-4 text-start">
                 <p class="m-0" style="color: #cbd5e1; line-height: 1.6; font-size: 0.9rem;">
-                    El presente proyecto tiene fines exclusivamente académicos. Los datos utilizados durante el desarrollo, las pruebas y la demostración del sistema son ficticios y fueron creados únicamente con fines de simulación. El sistema no recolecta, almacena ni procesa datos personales reales de estudiantes, docentes o terceros.
+                    El presente proyecto tiene fines exclusivamente académicos. Los datos utilizados durante el desarrollo y las pruebas son ficticios.
                 </p>
             </div>
             <div class="modal-footer border-secondary">
