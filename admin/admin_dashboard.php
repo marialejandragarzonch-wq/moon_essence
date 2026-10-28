@@ -91,7 +91,7 @@ if (!isset($_SESSION['usuario_id']) && !isset($_SESSION['usuario'])) {
 
         <div class="d-flex align-items-center gap-2">
             <!-- Enlace Quiénes Somos (Retrocede un nivel a la raíz) -->
-            <a href="../quienes_somos.php" class="btn btn-sm btn-outline-light">
+            <a href="/moon_essence/quienes_somos.php" class="btn btn-sm btn-outline-light">
                 <i class="bi bi-people me-1"></i> Quiénes Somos
             </a>
 

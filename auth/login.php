@@ -8,30 +8,55 @@ $pass = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
-    $password = trim($_POST['password'] ?? '');
+    $email_ingresado = trim($_POST['email'] ?? '');
+    $password_ingresado = trim($_POST['password'] ?? '');
 
-    if (!empty($email) && !empty($password)) {
+    if (!empty($email_ingresado) && !empty($password_ingresado)) {
         try {
             $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = :email LIMIT 1");
-            $stmt->execute(['email' => $email]);
+            // Búsqueda corregida utilizando únicamente la columna existente 'correo'
+            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE correo = :correo LIMIT 1");
+            $stmt->execute(['correo' => $email_ingresado]);
             $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if ($usuario && (password_verify($password, $usuario['password']) || $password === $usuario['password'])) {
-                $_SESSION['usuario_id'] = $usuario['id_usuario'] ?? $usuario['id'];
-                $_SESSION['nombre'] = $usuario['nombre'] ?? $usuario['nombre_completo'] ?? 'Usuario';
-                $_SESSION['usuario'] = $_SESSION['nombre'];
-                
-                header("Location: ../index.php");
-                exit;
+           if ($usuario) {
+                // Leemos el hash correctamente de la columna 'contrasena'
+                $pass_hash = $usuario['contrasena'] ?? '';
+                $nombre_usuario = $usuario['nombre'] ?? 'Usuario';
+                $rol_usuario = strtolower(trim($usuario['rol'] ?? ''));
+
+                $es_valida = false;
+
+                // Verificamos el hash con password_verify o comparación directa por compatibilidad
+                if (!empty($pass_hash) && password_verify($password_ingresado, $pass_hash)) {
+                    $es_valida = true;
+                } elseif ($password_ingresado === $pass_hash) {
+                    $es_valida = true;
+                }
+
+                if ($es_valida) {
+                    $_SESSION['usuario_id'] = $usuario['id_usuario'] ?? 1;
+                    $_SESSION['nombre'] = $nombre_usuario;
+                    $_SESSION['usuario'] = $nombre_usuario;
+                    $_SESSION['rol'] = $rol_usuario;
+
+                    // Redirección exacta al panel de administración o a la tienda según el rol
+                    if ($rol_usuario === 'admin') {
+                        header("Location: ../admin/admin_dashboard.php");
+                    } else {
+                        header("Location: ../index.php");
+                    }
+                    exit();
+                } else {
+                    $error = "Contraseña incorrecta.";
+                }
             } else {
-                $error = "Correo o contraseña incorrectos.";
+                $error = "El correo no está registrado.";
             }
         } catch (PDOException $e) {
-            $error = "Error de conexión con la base de datos.";
+            $error = "Error de conexión con la base de datos: " . $e->getMessage();
         }
     } else {
         $error = "Por favor completa todos los campos.";

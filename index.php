@@ -404,70 +404,41 @@ if ($cat_limpia === 'todas' || empty($cat_limpia)) {
     <i class="bi bi-tag-fill me-1"></i> ¡OBTÉN UN 20% DE DESCUENTO AL REGISTRARTE O FORMAR PARTE DE NUESTRA COMUNIDAD!
 </div>
 
-<nav class="navbar navbar-expand-lg navbar-koaj sticky-top">
-    <div class="container">
-        
-        <a class="navbar-brand d-flex align-items-center me-4" href="index.php">
-            <i class="bi bi-moon-stars-fill me-2" style="color: var(--azul-claro);"></i>
-            <span class="brand-logo">MOON ESSENCE</span>
+<nav class="navbar navbar-expand-lg sticky-top" style="background-color: #05090e; border-bottom: 1px solid rgba(196, 218, 250, 0.15); padding: 12px 0;">
+    <div class="container d-flex justify-content-between align-items-center">
+        <!-- Logo Moon Essence -->
+        <a class="navbar-brand fs-3 fw-bold text-white" href="index.php" style="letter-spacing: 1.5px; text-decoration: none;">
+            <i class="bi bi-moon-stars-fill me-2" style="color: #c4dafa;"></i>Moon Essence
         </a>
 
-        <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navKoaj">
-            <i class="bi bi-list fs-2"></i>
-        </button>
+        <!-- Botones Estilo Rectangular Exactos a tu Diseño -->
+        <div class="d-flex align-items-center gap-2">
+            <a href="quienes_somos.php" class="btn btn-outline-light btn-sm px-3" style="font-size: 0.85rem; font-weight: 500;">
+                <i class="bi bi-people me-1"></i> Quiénes Somos
+            </a>
 
-        <div class="collapse navbar-collapse" id="navKoaj">
-            
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                    <a class="nav-link nav-link-koaj" href="index.php">
-                        <i class="bi bi-house-door me-1"></i> INICIO
-                    </a>
-                </li>
+            <button type="button" class="btn btn-outline-light btn-sm px-3" data-bs-toggle="modal" data-bs-target="#modalTratamientoDatos" style="font-size: 0.85rem; font-weight: 500;">
+                <i class="bi bi-shield-check me-1"></i> Tratamiento de datos
+            </button>
 
-                <li class="nav-item dropdown">
-                    <a class="nav-link nav-link-koaj dropdown-toggle" href="#" id="dropMujer" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        MUJER
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-custom" aria-labelledby="dropMujer">
-                        <li><a class="dropdown-item-custom fw-bold" href="index.php?cat=todas">Ver Todo</a></li>
-                        <li><hr class="dropdown-divider border-secondary"></li>
-                        <?php foreach ($categorias as $cat): ?>
-                            <li>
-                                <a class="dropdown-item-custom" href="index.php?cat=<?= strtolower($cat['nombre_categoria']) ?>">
-                                    <?= htmlspecialchars($cat['nombre_categoria']) ?>
-                                </a>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </li>
-                
-                <li class="nav-item">
-                    <a class="nav-link nav-link-koaj" href="quienes_somos.php">QUIÉNES SOMOS</a>
-                </li>
-            </ul>
-
-            <div class="d-flex align-items-center gap-3">
-                <a href="index.php" class="icon-btn" title="Buscar productos"><i class="bi bi-search"></i></a>
-                <a href="#" class="icon-btn" data-bs-toggle="modal" data-bs-target="#modalFavoritos" title="Mis Favoritos"><i class="bi bi-heart"></i></a>
-                <a href="carrito/ver.php" class="icon-btn" title="Carrito de Compras">
-                    <i class="bi bi-bag"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">0</span>
+            <?php if (isset($_SESSION['usuario_id']) || isset($_SESSION['usuario'])): ?>
+                <!-- Cuando hay sesión iniciada (Muestra Hola, [Nombre] y Salir) -->
+                <span class="text-white fw-bold px-2" style="font-size: 0.9rem;">
+                    <i class="bi bi-person-circle me-1" style="color: #c4dafa;"></i>
+                    Hola, <?= htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['usuario'] ?? 'Usuario') ?>
+                </span>
+                <a href="auth/logout.php" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-box-arrow-right me-1"></i> Salir
                 </a>
+            <?php else: ?>
+                <!-- Cuando NO hay sesión iniciada -->
+                <a href="auth/login.php" class="btn btn-outline-light btn-sm px-3" style="font-size: 0.85rem; font-weight: 500;">Iniciar Sesión</a>
+                <a href="auth/registro.php" class="btn btn-sm px-3 fw-bold" style="background-color: #f9e8d0; color: #0b131e; font-size: 0.85rem;">Registrarse</a>
+            <?php endif; ?>
 
-                <?php if (isset($_SESSION['usuario_id']) || isset($_SESSION['usuario'])): ?>
-                    <span class="text-white small fw-bold ms-2">
-                        <i class="bi bi-person-circle me-1" style="color: var(--azul-claro);"></i>
-                        Hola, <?= htmlspecialchars($_SESSION['nombre'] ?? $_SESSION['usuario'] ?? 'Usuario') ?>
-                    </span>
-                    <a href="auth/logout.php" class="btn btn-sm px-3 fw-bold btn-outline-danger">Cerrar Sesión</a>
-                <?php else: ?>
-                    <a href="auth/login.php" class="btn btn-sm px-3 fw-bold ms-2" style="background-color: var(--azul-claro); color: #0b131e;">
-                        <i class="bi bi-person-circle me-1"></i> Ingresar
-                    </a>
-                <?php endif; ?>
-            </div>
-
+            <a href="carrito/ver.php" class="btn btn-sm px-3 fw-bold" style="border: 1px solid #f1c40f; color: #f1c40f; background: transparent; font-size: 0.85rem;">
+                <i class="bi bi-cart-fill me-1"></i> Carrito
+            </a>
         </div>
     </div>
 </nav>

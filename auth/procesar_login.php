@@ -1,6 +1,5 @@
 <?php
 session_start();
-
 $host = 'localhost';
 $db   = 'moon_essence';
 $user = 'root';
@@ -14,25 +13,42 @@ try {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
+    $correo_ingresado = trim($_POST['email'] ?? '');
+    $password_ingresado = $_POST['password'] ?? '';
 
-    // Buscar usuario por correo
-    $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
-    $stmt->execute([$email]);
+    if (empty($correo_ingresado) || empty($password_ingresado)) {
+        header("Location: login.php?error=empty");
+        exit();
+    }
+
+    // Buscamos al usuario usando tanto 'email' como 'correo' para asegurarnos de que lo encuentre
+    $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ? OR correo = ?");
+    $stmt->execute([$correo_ingresado, $correo_ingresado]);
     $usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Validar contraseña
-    if ($usuario && ($password === $usuario['password'] || password_verify($password, $usuario['password']))) {
-        $_SESSION['usuario_id'] = $usuario['id_usuario'];
-        $_SESSION['usuario_nombre'] = $usuario['nombre'];
-        $_SESSION['rol_id'] = $usuario['rol_id'];
+    if ($usuario) {
+        // Verificamos en la columna 'password' o 'contrasena'
+        $hash_en_db = $usuario['password'] ?? $usuario['contrasena'] ?? '';
 
-        header('Location: index.php');
-        exit;
-    } else {
-        $_SESSION['error'] = 'Correo o contraseña incorrectos.';
-        header('Location: login.php');
-        exit;
+        // Comprobamos si la contraseña coincide (soporta tanto hash como texto plano por seguridad)
+        if (password_verify($password_ingresado, $hash_en_db) || $password_ingresado === $hash_en_db) {
+            
+            // Creamos las variables de sesión para que el saludo aparezca en el index
+            $_SESSION['usuario_id'] = $usuario['id_usuario'] ?? $usuario['id'] ?? 1;
+            $_SESSION['nombre'] = $usuario['nombre'] ?? 'Usuario';
+            $_SESSION['usuario'] = $usuario['email'] ?? $usuario['correo'] ?? '';
+
+            // Redirigimos a la tienda principal con la sesión activa
+            header("Location: ../index.php");
+            exit();
+        }
     }
+
+    // Si falla, regresa al login con error
+    header("Location: login.php?error=invalid");
+    exit();
+} else {
+    header("Location: login.php");
+    exit();
 }
+?>
