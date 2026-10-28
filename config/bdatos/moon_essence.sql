@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 19-10-2026 a las 18:11:24
+-- Tiempo de generación: 28-10-2026 a las 15:24:36
 -- Versión del servidor: 10.1.38-MariaDB
 -- Versión de PHP: 7.1.27
 
@@ -67,7 +67,10 @@ CREATE TABLE `detalle_pedidos` (
 
 INSERT INTO `detalle_pedidos` (`id_detalle`, `id_pedido`, `id_producto`, `cantidad`, `precio_unitario`) VALUES
 (1, 2, 18, 1, '180000.00'),
-(2, 2, 12, 1, '110000.00');
+(2, 2, 12, 1, '110000.00'),
+(3, 3, 19, 1, '115000.00'),
+(4, 3, 11, 1, '125000.00'),
+(5, 3, 15, 1, '90000.00');
 
 -- --------------------------------------------------------
 
@@ -145,7 +148,8 @@ CREATE TABLE `pedidos` (
 
 INSERT INTO `pedidos` (`id_pedido`, `id_usuario`, `fecha_pedido`, `total`, `metodo_pago`, `estado_pedido`, `fecha_creacion`, `nombre_cliente`, `telefono`, `direccion`, `ciudad`, `notas`) VALUES
 (1, 1, '2026-08-19 15:25:14', '85000.00', 'nequi', 'pendiente', '2026-08-19 10:25:14', NULL, NULL, NULL, NULL, NULL),
-(2, 5, '2026-10-19 12:36:14', '290000.00', '', '', '2026-10-19 07:36:14', NULL, NULL, NULL, NULL, NULL);
+(2, 5, '2026-10-19 12:36:14', '290000.00', '', '', '2026-10-19 07:36:14', NULL, NULL, NULL, NULL, NULL),
+(3, 1, '2026-10-21 11:44:49', '330000.00', '', '', '2026-10-21 06:44:49', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -222,23 +226,24 @@ INSERT INTO `tiendas` (`id_tienda`, `usuario_id`, `id_usuario`, `nombre_tienda`,
 CREATE TABLE `usuarios` (
   `id_usuario` int(11) NOT NULL,
   `nombre` varchar(100) NOT NULL,
-  `email` varchar(100) DEFAULT NULL,
-  `password` varchar(255) DEFAULT NULL,
   `correo` varchar(100) NOT NULL,
   `contrasena` varchar(255) NOT NULL,
   `rol` varchar(50) DEFAULT 'cliente',
-  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `rol_id` int(11) DEFAULT NULL
+  `fecha_registro` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 --
 -- Volcado de datos para la tabla `usuarios`
 --
 
-INSERT INTO `usuarios` (`id_usuario`, `nombre`, `email`, `password`, `correo`, `contrasena`, `rol`, `fecha_registro`, `rol_id`) VALUES
-(1, 'Administrador Principal', 'admin@moon.com', '$2y$10$e0MYzXyjpJS7Pd0RVvHwHe1X.wXuYGG0M80D1bT.5W3Kk4Yx7o5.C', 'admin@moon.com', '123456', 'admin', '2026-08-19 14:05:29', 2),
-(4, 'Vendedor Tienda', 'vendedor@moon.com', '$2y$10$e0MYzXyjpJS7Pd0RVvHwHe1X.wXuYGG0M80D1bT.5W3Kk4Yx7o5.C', 'vendedor@moon.com', '123456', 'vendedor', '2026-09-23 11:53:40', NULL),
-(5, 'Cliente Ejemplo', 'cliente@moon.com', '$2y$10$e0MYzXyjpJS7Pd0RVvHwHe1X.wXuYGG0M80D1bT.5W3Kk4Yx7o5.C', 'cliente@moon.com', '123456', 'cliente', '2026-09-23 11:53:40', NULL);
+INSERT INTO `usuarios` (`id_usuario`, `nombre`, `correo`, `contrasena`, `rol`, `fecha_registro`) VALUES
+(1, 'Administrador Principal', 'admin@moon.com', '$2y$10$RjIYMhPFptLkODR2j3dd7OdIbN./07ofgDXtB2E0oSMKEwXiN/i6.', 'admin', '2026-08-19 14:05:29'),
+(4, 'Vendedor Tienda', 'vendedor@moon.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9IIC/.og/at2.uheWG/igi', 'vendedor', '2026-09-23 11:53:40'),
+(5, 'Cliente Ejemplo', 'cliente@moon.com', '$2y$10$8.wWv1qJ4vY3h2Z5Kj7X1u5f6g7K9k0l1m2n3o4p5...', 'cliente', '2026-09-23 11:53:40'),
+(6, 'Maria', 'marialejandragarzonch@gmail.com', '$2y$10$fYEyEc07z4VI8WfVxxoZcucN3rqlKD9ITKeOlp7w2Ed3aI0lUev4m', 'cliente', '2026-10-26 15:54:41'),
+(16, 'pepe', 'pepe@gmail.com', '$2y$10$RjIYMhPFptLkODR2j3dd7OdIbN./07ofgDXtB2E0oSMKEwXiN/i6.', 'cliente', '2026-10-28 12:29:50'),
+(17, 'juanita', 'juanita@gmail.com', '$2y$10$fYEyEc07z4VI8WfVxxoZcucN3rqlKD9ITKeOlp7w2Ed3aI0lUev4m', 'cliente', '2026-10-28 12:33:11'),
+(18, 'was', 'was@gmail.com', '$2y$10$lIrKixm69LP9XNouk5JUSOZaFjHe8H5Sw/bdS7M9KvwMwGX0teX0W', 'cliente', '2026-10-28 14:19:25');
 
 --
 -- Índices para tablas volcadas
@@ -316,7 +321,7 @@ ALTER TABLE `categorias`
 -- AUTO_INCREMENT de la tabla `detalle_pedidos`
 --
 ALTER TABLE `detalle_pedidos`
-  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `fotos_producto`
@@ -334,7 +339,7 @@ ALTER TABLE `notificaciones`
 -- AUTO_INCREMENT de la tabla `pedidos`
 --
 ALTER TABLE `pedidos`
-  MODIFY `id_pedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_pedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de la tabla `productos`
@@ -352,7 +357,7 @@ ALTER TABLE `tiendas`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- Restricciones para tablas volcadas
